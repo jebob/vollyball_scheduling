@@ -67,19 +67,19 @@ def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
 def print_table(solution):
     """returns a 2d table for a solution that can be pasted into excel"""
     for court in range(num_of_courts):
-        print('\t\t'.join(round[court][0] for round in solution))
-        print('\t\t'.join(round[court][1] for round in solution))
-        print('\t\t'.join(round[court][2] for round in solution))
+        print("\t\t".join(round[court][0] for round in solution))
+        print("\t\t".join(round[court][1] for round in solution))
+        print("\t\t".join(round[court][2] for round in solution))
     print(f"score: {get_score(solution)}")
 
 
 def main():
     initial_solution = starting_solution()
-    
-    print('Initial solution:')
+
+    print("Initial solution:")
     print_table(initial_solution)
 
-    print('\nFinal solution:')
+    print("\nFinal solution:")
     print_table(initial_solution)
 
 
