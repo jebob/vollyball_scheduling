@@ -13,7 +13,11 @@ rounds = 11  # number of rounds of games
 num_of_courts = 6
 num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
 # for reference: groups = [["roger's team", "A2", "A3", "A4", "A5"], ["B1", "B2", "B3", "B4", "B5", "B6", "B7"], ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]]
-groups = [["teamA1", "teamA2", "teamA3", "teamA4", "teamA5"], ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"], ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"]]
+groups = [
+    ["teamA1", "teamA2", "teamA3", "teamA4", "teamA5"],
+    ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
+    ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
+]
 
 best_output_matrix = []
 best_min = 0
@@ -22,7 +26,9 @@ best_matchup_score = 999999
 average_matchup_score = 0
 old_groups = groups
 
-for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation" times and picks best
+for sim_number in range(
+    num_of_simulation
+):  # run the setup "num_of_simulation" times and picks best
     groups = copy.deepcopy(old_groups)
     new_groups = []
     output_matrix = []
@@ -75,7 +81,7 @@ for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation"
             group[j][1].pop(0)
 
         # fills in remaining courts with some randomness
-        while court_to_fill < len(courts)-1:
+        while court_to_fill < len(courts) - 1:
             court_to_fill += 1
             # find team with least games
             least = 99999
@@ -84,12 +90,16 @@ for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation"
                     if team[3] < least:
                         least = team[3]
             escape = False
-            for i in range(200):  # pick a group at random upto 100 times to find an available team.
-                if escape:  # need to break out of 3 while loops, so this is how I did it.
+            for i in range(
+                200
+            ):  # pick a group at random upto 100 times to find an available team.
+                if (
+                    escape
+                ):  # need to break out of 3 while loops, so this is how I did it.
                     break
                 if i == 100:
                     least += 1
-                group_no = random.randint(0, len(groups)-1)
+                group_no = random.randint(0, len(groups) - 1)
                 group = groups[group_no]
                 escape = False
                 for team in group:
@@ -104,7 +114,11 @@ for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation"
                             if team2[0] in team[1]:
                                 if team2[0] not in occupied:
                                     # a game shall be played between team2 and team 1
-                                    courts[court_to_fill] = [team[0], team2[0], group_no]
+                                    courts[court_to_fill] = [
+                                        team[0],
+                                        team2[0],
+                                        group_no,
+                                    ]
                                     if team[0] not in team2[1]:
                                         team2[1] = team2[4].copy()
                                     occupied.append(team2[0])
@@ -138,7 +152,7 @@ for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation"
             else:  # find one from a different group
                 matchup_score += 0.1
                 for j in range(100):
-                    group = groups[random.randint(0, len(groups)-1)]
+                    group = groups[random.randint(0, len(groups) - 1)]
                     i = 0
                     for team in group:  # try to find a ref from the same group
                         if team[0] not in occupied:
@@ -178,17 +192,17 @@ for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation"
                 min_used = team[3] + team[5]
             if max_used < team[3] + team[5]:
                 max_used = team[3] + team[5]
-        matchup_score += (max_g - min_g)*2 + (max_used - min_used)
+        matchup_score += (max_g - min_g) * 2 + (max_used - min_used)
     matchup_score += (max_games - min_games) * 5
     # print(matchup_score)
-    average_matchup_score += matchup_score/num_of_simulation
+    average_matchup_score += matchup_score / num_of_simulation
     if matchup_score < best_matchup_score:
         best_matchup_score = matchup_score
         best_output_matrix = output_matrix
         best_min = min_games
         best_max = max_games
 
-for i in range(num_of_courts*3):
+for i in range(num_of_courts * 3):
     to_output = ""
     for j in range(rounds):
         to_output = to_output + "\t\t" + best_output_matrix[j][i]
