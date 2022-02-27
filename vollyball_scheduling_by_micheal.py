@@ -28,8 +28,24 @@ best_output_matrix = []
 best_min = 0
 best_max = 0
 best_match_up_score = 999999
-average_matchup_score = 0
+average_match_up_score = 0
 old_groups = groups
+
+
+def reformat_teams(groups):
+    for group in groups:
+        new_group = []
+        for team in group:
+            playable = []
+            for team2 in group:
+                if team != team2:
+                    playable.append(team2)
+            random.shuffle(playable)
+            new_group.append([team, playable, [], 0, playable.copy(), 0])
+        new_groups.append(new_group)
+    # print(new_groups)
+    return new_groups
+
 
 for sim_number in range(
     num_of_simulation
@@ -42,18 +58,7 @@ for sim_number in range(
     #   team_name, [teams the can play against], [teams already played against],
     #   games_played, [backup of teams to play against], games refereed
     # ]
-    for group in groups:
-        new_group = []
-        for team in group:
-            playable = []
-            for team2 in group:
-                if team != team2:
-                    playable.append(team2)
-            random.shuffle(playable)
-            new_group.append([team, playable, [], 0, playable.copy(), 0])
-        new_groups.append(new_group)
-    # print(new_groups)
-    groups = new_groups
+    groups = reformat_teams(groups)
 
     for round in range(rounds):
         courts = []
@@ -203,7 +208,7 @@ for sim_number in range(
         match_up_score += (max_g - min_g) * 2 + (max_used - min_used)
     match_up_score += (max_games - min_games) * 5
     # print(match_up_score)
-    average_matchup_score += match_up_score / num_of_simulation
+    average_match_up_score += match_up_score / num_of_simulation
     if match_up_score < best_match_up_score:
         best_match_up_score = match_up_score
         best_output_matrix = output_matrix
@@ -218,4 +223,4 @@ for i in range(num_of_courts * 3):
 
 print("team with least games played:", best_min)
 print("team with most games played:", best_max)
-print(best_match_up_score, "best score compared to average of :", average_matchup_score)
+print(best_match_up_score, "best score compared to average of :", average_match_up_score)
