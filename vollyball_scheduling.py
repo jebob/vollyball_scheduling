@@ -1,7 +1,10 @@
 """
-Code to attempt to find the best setup of matches for playing volly ball, with 1 team per side and 1 team as ref
-Input is a list of lists of team names, see reference line above. Don't repeat team names.
-Output is a grid where each column is a set of games and rows repeat: "team1, team2, referee" for a match.
+Andrew Tatarek asked me to help organize a volleyball tournament. Given a set of groups of teams called ORIGINAL_GROUPS
+I need to assign which team will play which when and which team will referee. This is part of a larger solution that
+Andrew Tatarek built in Microsoft Excel. The output of this file is a grid where each column is a set of games and
+rows repeat: "team1, team2, referee" for each match.
+
+The code in this file was written jointly by Micheal Howlett and David Howlett.
 """
 
 import copy
@@ -95,84 +98,8 @@ def run_sim(groups):
     # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
     for _ in range(ROUNDS):
-        courts = [[]] * COURTS_TO_USE
-        # fill in 1 court per group to help balance the numbers
-        court_to_fill = -1  # court number being filled
-        occupied = []  # teams which are busy.
-        for group in groups:
-            court_to_fill += 1
-            i, j = 9999, 0
-            for k, team in enumerate(group):
-                if team[3] < i:
-                    i = team[3]
-                    j = k
-            if not group[j][1]:
-                group[j][1] = group[j][4].copy()
-            courts[court_to_fill] = [group[j][0], group[j][1][0], court_to_fill]
-            # update team information so that the teams don't repeat.
-            occupied.append(group[j][0])
-            occupied.append(group[j][1][0])
-            # update team 2 info
-            for team in group:
-                if team[0] == group[j][1][0]:
-                    if not team[1]:
-                        team[1] = team[4].copy()
-                    team[1].remove(group[j][0])
-                    team[2].append(group[j][0])
-                    team[3] += 1
-            # update team 1 info
-            group[j][3] = group[j][3] + 1
-            group[j][2].append(group[j][1][0])
-            group[j][1].pop(0)
-
-        # fills in remaining courts with some randomness
-        while court_to_fill < len(courts) - 1:
-            court_to_fill += 1
-            # find team with the least games
-            least = 99999
-            for group in groups:
-                for team in group:
-                    if team[3] < least:
-                        least = team[3]
-            escape = False
-            for i in range(200):  # pick a group at random upto 100 times to find an available team.
-                if escape:  # need to break out of 3 while loops, so this is how I did it.
-                    break
-                if i == 100:
-                    least += 1
-                group_no = random.randint(0, len(groups) - 1)
-                group = groups[group_no]
-                escape = False
-                for team in group:
-                    if escape:
-                        break
-                    if team[0] in occupied:  # the team is already playing
-                        continue
-                    if team[3] == least:  # if no team as played less than this one
-                        if not team[1]:
-                            team[1] = team[4].copy()
-                        for team2 in group:
-                            if team2[0] in team[1]:
-                                if team2[0] not in occupied:
-                                    # a game shall be played between team2 and team 1
-                                    courts[court_to_fill] = [
-                                        team[0],
-                                        team2[0],
-                                        group_no,
-                                    ]
-                                    if team[0] not in team2[1]:
-                                        team2[1] = team2[4].copy()
-                                    occupied.append(team2[0])
-                                    occupied.append(team[0])
-                                    team[3] += 1
-                                    team[2].append(team2[0])
-                                    team[1].remove(team2[0])
-                                    team2[3] += 1
-                                    team2[2].append(team[0])
-                                    team2[1].remove(team[0])
-                                    escape = True
-                                    break
-
+        court_to_fill, courts, occupied = one_court_per_group(groups)
+        fill_in_missing_players(court_to_fill, courts, groups, occupied)
         match_up_score = add_referees(courts, groups, occupied)
         to_output = []
         for court in courts:
@@ -183,8 +110,97 @@ def run_sim(groups):
     return match_up_score, output_matrix, groups
 
 
+def fill_in_missing_players(court_to_fill, courts, groups, occupied):
+    """
+    fills in players for the remaining courts with some randomness
+    """
+    while court_to_fill < len(courts) - 1:
+        court_to_fill += 1
+        # find team with the least games
+        least = 99999
+        for group in groups:
+            for team in group:
+                if team[3] < least:
+                    least = team[3]
+        escape = False
+        for i in range(200):  # pick a group at random upto 100 times to find an available team.
+            if escape:  # need to break out of 3 while loops, so this is how I did it.
+                break
+            if i == 100:
+                least += 1
+            group_no = random.randint(0, len(groups) - 1)
+            group = groups[group_no]
+            escape = False
+            for team in group:
+                if escape:
+                    break
+                if team[0] in occupied:  # the team is already playing
+                    continue
+                if team[3] == least:  # if no team has played less than this one
+                    if not team[1]:
+                        team[1] = team[4].copy()
+                    for team2 in group:
+                        if team2[0] in team[1]:
+                            if team2[0] not in occupied:
+                                # a game shall be played between team2 and team 1
+                                courts[court_to_fill] = [
+                                    team[0],
+                                    team2[0],
+                                    group_no,
+                                ]
+                                if team[0] not in team2[1]:
+                                    team2[1] = team2[4].copy()
+                                occupied.append(team2[0])
+                                occupied.append(team[0])
+                                team[3] += 1
+                                team[2].append(team2[0])
+                                team[1].remove(team2[0])
+                                team2[3] += 1
+                                team2[2].append(team[0])
+                                team2[1].remove(team[0])
+                                escape = True
+                                break
+
+
+def one_court_per_group(groups):
+    """
+    This fills in 1 court per group to help balance the number of courts allocated to each group
+    """
+    courts = [[]] * COURTS_TO_USE
+    court_to_fill = -1  # court number being filled
+    occupied = []  # teams which are busy.
+    for group in groups:
+        court_to_fill += 1
+        i, j = 9999, 0
+        for k, team in enumerate(group):
+            if team[3] < i:
+                i = team[3]
+                j = k
+        if not group[j][1]:
+            group[j][1] = group[j][4].copy()
+        courts[court_to_fill] = [group[j][0], group[j][1][0], court_to_fill]
+        # update team information so that the teams don't repeat.
+        occupied.append(group[j][0])
+        occupied.append(group[j][1][0])
+        # update team 2 info
+        for team in group:
+            if team[0] == group[j][1][0]:
+                if not team[1]:
+                    team[1] = team[4].copy()
+                team[1].remove(group[j][0])
+                team[2].append(group[j][0])
+                team[3] += 1
+        # update team 1 info
+        group[j][3] = group[j][3] + 1
+        group[j][2].append(group[j][1][0])
+        group[j][1].pop(0)
+    return court_to_fill, courts, occupied
+
+
 def add_referees(courts, groups, occupied):
-    # add referees
+    """
+    Add referees to all the matches
+    """
     match_up_score = 0  # how bad the setup of matches is
     for court in courts:
         if not court:
