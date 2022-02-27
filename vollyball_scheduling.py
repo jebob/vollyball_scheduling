@@ -25,8 +25,8 @@ NUM_OF_SIMULATION: int = 500  # number of times it tries to produce a setup, hig
 ROUNDS = 11  # number of rounds of games
 NUM_OF_COURTS = 6
 COURTS_TO_USE = min(NUM_OF_COURTS, len({team for group in ORIGINAL_GROUPS for team in group}) // 3)
-# debugging is easier if the randomness is not really random
-random.seed(10)
+# debugging is easier if the randomness is not really random.
+# random.seed(10)
 
 
 class EmptyCourtException(Exception):
@@ -137,7 +137,7 @@ def one_court_per_group(groups):
         for team in group:
             if team[0] == group[j][1][0]:
                 if group[j][0] not in team[1]:
-                    team[1] = (team[1] + team[4].copy())
+                    team[1] = team[1] + team[4].copy()
                 team[1].remove(group[j][0])
                 team[2].append(group[j][0])
                 team[3] += 1
