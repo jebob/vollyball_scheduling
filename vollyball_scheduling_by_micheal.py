@@ -9,9 +9,6 @@ Output is a grid where each column is a set of games and rows repeat: "team1, te
 import random
 import copy
 
-rounds = 11  # number of rounds of games
-num_of_courts = 6
-num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
 groups = [
     ["teamA1", "teamA2", "teamA3", "teamA4", "teamA5"],
     ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
@@ -20,9 +17,13 @@ groups = [
 groups = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
     ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
-    ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
-    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05"],
+    ["Team3-01", "Team3-02", "Team3-03", "Team3-04"],
+    ["Team4-01", "Team4-02", "Team4-03", "Team4-04"],
 ]
+num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
+rounds = 11  # number of rounds of games
+num_of_courts = 6
+used_courts = min(num_of_courts, len({team for group in groups for team in group})//3)
 
 old_groups = groups
 
@@ -52,7 +53,7 @@ def print_table(output_matrix):
     """
     This prints the transpose of the table in the code
     """
-    for i in range(num_of_courts * 3):
+    for i in range(used_courts * 3):
         to_output = ""
         for j in range(rounds):
             to_output = to_output + "\t\t" + output_matrix[j][i]
@@ -75,7 +76,7 @@ def run_sims():
 
         for round in range(rounds):
             courts = []
-            for i in range(num_of_courts):
+            for i in range(used_courts):
                 courts.append([])
             # fill in 1 court per group to help balance the numbers
             court_to_fill = -1  # court number being filled
