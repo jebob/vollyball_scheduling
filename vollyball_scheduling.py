@@ -1,9 +1,7 @@
 """
-Code to attempt to find the best setup of matches for playing vollyball, with 1 team per side and 1 team as ref
+Code to attempt to find the best setup of matches for playing volly ball, with 1 team per side and 1 team as ref
 Input is a list of lists of team names, see reference line above. Don't repeat team names.
 Output is a grid where each column is a set of games and rows repeat: "team1, team2, referee" for a match.
-
-
 """
 
 import copy
@@ -79,7 +77,7 @@ def run_sims(groups):
         try:
             match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
         except EmptyCourtException:
-            pass
+            continue
         match_up_score = get_score(result_groups, match_up_score)
 
         if match_up_score < best_match_up_score:

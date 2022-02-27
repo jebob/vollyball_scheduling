@@ -1,9 +1,11 @@
 """
+THIS ATTEMPT IS UNFINISHED, USE THE OTHER FILE
+
 Code to attempt to find the best setup of matches for playing volly ball, with 1 team per side and 1 team as ref
 Input is a list of lists of team names. Each outer list is a group. Don't repeat team names.
 Output is a grid where each column is a set of games and rows repeat: "team1, team2, referee" for a match.
 
-A solution is a list of ROUNDS
+A solution is a list of rounds
 A round is a list of matches
 A match is a tuple of referee, left side player and right side player
 """
