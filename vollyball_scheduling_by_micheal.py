@@ -69,6 +69,9 @@ def run_sims(groups):
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for _ in range(NUM_OF_SIMULATION):  # run the setup "NUM_OF_SIMULATION" times and picks best
+        # found another bug which crashes the code once every few hundred games.
+        # where if for all teams the [teams they can play against] are already playing someone else, no game gets
+        # added causing an empty court and a crash. due to rarity, he just stuck a "try:   except:" after run_sim
         try:
             match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
         except:
@@ -87,13 +90,10 @@ def run_sim(groups):
     generate a single solution and partially scores it
     """
     output_matrix = []
-    match_up_score = 0  # how bad the setup of matches is
     # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
     for _ in range(ROUNDS):
-        courts = []
-        for _ in range(COURTS_TO_USE):
-            courts.append([])
+        courts = [[]] * COURTS_TO_USE
         # fill in 1 court per group to help balance the numbers
         court_to_fill = -1  # court number being filled
         occupied = []  # teams which are busy.
@@ -171,39 +171,7 @@ def run_sim(groups):
                                     escape = True
                                     break
 
-        # add referees
-        for court in courts:
-            group = groups[court[2]]
-            found = False
-            min_refs = 9999  # minimum number of games refereed by a team in the group
-            best_team = 9999  # team with the least referees
-            i = 0
-            for team in group:  # try to find a ref from the same group
-                if team[0] not in occupied:
-                    if team[5] <= min_refs:
-                        min_refs = team[5]
-                        best_team = i
-                        found = True
-                i += 1
-            if found:
-                occupied.append(group[best_team][0])
-                court[2] = group[best_team][0]
-            else:  # find one from a different group
-                match_up_score += 0.1
-                for _ in range(100):
-                    group = groups[random.randint(0, len(groups) - 1)]
-                    i = 0
-                    for team in group:  # try to find a ref from the same group
-                        if team[0] not in occupied:
-                            if team[5] <= min_refs:
-                                min_refs = team[5]
-                                best_team = i
-                                found = True
-                        i += 1
-                    if found:
-                        occupied.append(group[best_team][0])
-                        court[2] = group[best_team][0]
-                        break
+        match_up_score = add_referees(courts, groups, occupied)
         to_output = []
         for court in courts:
             to_output.append(court[0])
@@ -211,6 +179,44 @@ def run_sim(groups):
             to_output.append(court[2])
         output_matrix.append(to_output)
     return match_up_score, output_matrix, groups
+
+
+def add_referees(courts, groups, occupied):
+    # add referees
+    match_up_score = 0  # how bad the setup of matches is
+    for court in courts:
+        group = groups[court[2]]
+        found = False
+        min_refs = 9999  # minimum number of games refereed by a team in the group
+        best_team = 9999  # team with the least referees
+        i = 0
+        for team in group:  # try to find a ref from the same group
+            if team[0] not in occupied:
+                if team[5] <= min_refs:
+                    min_refs = team[5]
+                    best_team = i
+                    found = True
+            i += 1
+        if found:
+            occupied.append(group[best_team][0])
+            court[2] = group[best_team][0]
+        else:  # find one from a different group
+            match_up_score += 0.1
+            for _ in range(100):
+                group = groups[random.randint(0, len(groups) - 1)]
+                i = 0
+                for team in group:  # try to find a ref from the same group
+                    if team[0] not in occupied:
+                        if team[5] <= min_refs:
+                            min_refs = team[5]
+                            best_team = i
+                            found = True
+                    i += 1
+                if found:
+                    occupied.append(group[best_team][0])
+                    court[2] = group[best_team][0]
+                    break
+    return match_up_score
 
 
 def get_score(groups, match_up_score):
