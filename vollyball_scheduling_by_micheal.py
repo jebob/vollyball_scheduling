@@ -24,11 +24,6 @@ groups = [
 #    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05"],
 # ]
 
-best_output_matrix = []
-best_min = 0
-best_max = 0
-best_match_up_score = 999999
-average_match_up_score = 0
 old_groups = groups
 
 
@@ -48,7 +43,12 @@ def reformat_teams(groups):
 
 
 def run_sims():
-    global groups, new_groups, i, j, to_output, best_match_up_score, best_output_matrix, best_min, best_max, average_match_up_score
+    global groups, new_groups, best_match_up_score, best_output_matrix
+    best_output_matrix = []
+    best_min = 0
+    best_max = 0
+    best_match_up_score = 999999
+    average_match_up_score = 0
     for sim_number in range(
             num_of_simulation
     ):  # run the setup "num_of_simulation" times and picks best
@@ -216,6 +216,8 @@ def run_sims():
             best_output_matrix = output_matrix
             best_min = min_games
             best_max = max_games
+    print("team with least games played:", best_min)
+    print("team with most games played:", best_max)
     return average_match_up_score
 
 
@@ -227,6 +229,4 @@ for i in range(num_of_courts * 3):
         to_output = to_output + "\t\t" + best_output_matrix[j][i]
     print(to_output[2:])
 
-print("team with least games played:", best_min)
-print("team with most games played:", best_max)
 print(best_match_up_score, "best score compared to average of :", average_match_up_score)
