@@ -11,8 +11,9 @@ A match is a tuple of referee, left side player and right side player
 import random
 from typing import List, Tuple
 
-rounds = 11  # number of rounds of games
-num_of_courts = 6
+ROUNDS = 11  # number of rounds of the tournament
+NUM_OF_COURTS = 6
+TEAMS_PER_MATCH = 3
 groups = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05", "Team1-06"],
     ["Team2-01", "Team2-02", "Team2-03", "Team2-04", "Team2-05"],
@@ -20,14 +21,17 @@ groups = [
     ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
 ]
 
+# How bad is it for a team to do more than one thing in a round?
+DUPLICATED_TEAMS_WEIGHT = 999
+
 
 def starting_solution() -> List[List[Tuple[str, str, str]]]:
     """Creates an initial solution to iterate on"""
     all_teams = sum(groups, [])
     solution = []
-    for _ in range(rounds):
+    for _ in range(ROUNDS):
         column = []
-        for court in range(num_of_courts):
+        for court in range(NUM_OF_COURTS):
             match = tuple(random.choices(all_teams, k=3))
             column.append(match)
         solution.append(column)
@@ -39,14 +43,20 @@ def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
     Assigns a numerical score to a solution
     """
 
-    # Within each round a team can do at most one thing
-    # -999*(number of times a team appears in a column over 1)
+    score = 0
+    # Within each round a team can do at most one thing also every match must have a complete set of
+    # (left team, right team, ref) These two score modifications can be calculated at the same time by adding a None
+    # then looking for duplicates
+    for round in solution:
+        count_of_teams = (
+            len({team for match in round for team in match}.union({None})) - 1
+        )
+        score += DUPLICATED_TEAMS_WEIGHT * (
+            NUM_OF_COURTS * TEAMS_PER_MATCH - count_of_teams
+        )
 
     # Teams can only play teams from within their group
     # - 999 *(number of matches between different groups)
-
-    # Every match must have a complete set of (left team, right team, ref)
-    # -999*(number of unfinished matchups)
 
     # Close to equal number of match ups within a group
     # 10*(max(games played in a group)-min(games played in a group)) summed over all groups
@@ -66,7 +76,7 @@ def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
 
 def print_table(solution):
     """returns a 2d table for a solution that can be pasted into excel"""
-    for court in range(num_of_courts):
+    for court in range(NUM_OF_COURTS):
         print("\t\t".join(round[court][0] for round in solution))
         print("\t\t".join(round[court][1] for round in solution))
         print("\t\t".join(round[court][2] for round in solution))
