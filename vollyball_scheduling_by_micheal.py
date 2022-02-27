@@ -65,7 +65,6 @@ def run_sims(groups):
     generate a collection of solutions with a bit of randomness and return the best one,
     the best score and the average score
     """
-    global best_output_matrix
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
