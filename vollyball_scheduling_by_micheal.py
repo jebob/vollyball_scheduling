@@ -17,12 +17,12 @@ groups = [
     ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
     ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
 ]
-# groups = [
-#    ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
-#    ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
-#    ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
-#    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05"],
-# ]
+groups = [
+    ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
+    ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
+    ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
+    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05"],
+]
 
 old_groups = groups
 
@@ -65,7 +65,7 @@ def run_sims():
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for sim_number in range(
-            num_of_simulation
+        num_of_simulation
     ):  # run the setup "num_of_simulation" times and picks best
         groups = copy.deepcopy(old_groups)
         output_matrix = []
@@ -117,10 +117,10 @@ def run_sims():
                             least = team[3]
                 escape = False
                 for i in range(
-                        200
+                    200
                 ):  # pick a group at random upto 100 times to find an available team.
                     if (
-                            escape
+                        escape
                     ):  # need to break out of 3 while loops, so this is how I did it.
                         break
                     if i == 100:
@@ -162,7 +162,9 @@ def run_sims():
             for court in courts:
                 group = groups[court[2]]
                 found = False
-                min_refs = 9999  # minimum number of games refereed by a team in the group
+                min_refs = (
+                    9999  # minimum number of games refereed by a team in the group
+                )
                 best_team = 9999  # team with the least referees
                 i = 0
                 for team in group:  # try to find a ref from the same group
@@ -237,4 +239,8 @@ def get_score(groups, match_up_score):
 if __name__ == "__main__":
     best_output_matrix, average_match_up_score = run_sims()
     print_table(best_output_matrix)
-    print(best_match_up_score, "best score compared to average of :", average_match_up_score)
+    print(
+        best_match_up_score,
+        "best score compared to average of :",
+        average_match_up_score,
+    )
