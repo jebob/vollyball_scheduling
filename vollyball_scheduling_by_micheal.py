@@ -69,7 +69,10 @@ def run_sims(groups):
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for _ in range(NUM_OF_SIMULATION):  # run the setup "NUM_OF_SIMULATION" times and picks best
-        match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
+        try:
+            match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
+        except:
+            pass
         match_up_score = get_score(result_groups, match_up_score)
 
         if match_up_score < best_match_up_score:
