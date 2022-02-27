@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.2.1
+    hooks:
+      - id: isort
+  - repo: https://github.com/ambv/black
+    rev: stable
+    hooks:
+    - id: black
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
+    hooks:
+    - id: flake8
+      additional_dependencies: [
+        'flake8-bugbear==20.1.4',
+      ]
+  - repo: https://github.com/pycqa/pylint
+    rev: "pylint-2.5.3"
+    hooks:
+    - id: pylint
+      args:
+      # outside of docker we have no guarantee that dependencies are installed
+      - --disable=import-error
+  # mypy in the precommit hook should be enabled after it is enabled in the CI
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: ''  # Use the sha / tag you want to point at
+    hooks:
+    -   id: mypy

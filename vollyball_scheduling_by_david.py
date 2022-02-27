@@ -48,12 +48,8 @@ def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
     # (left team, right team, ref) These two score modifications can be calculated at the same time by adding a None
     # then looking for duplicates
     for round in solution:
-        count_of_teams = (
-            len({team for match in round for team in match}.union({None})) - 1
-        )
-        score += DUPLICATED_TEAMS_WEIGHT * (
-            NUM_OF_COURTS * TEAMS_PER_MATCH - count_of_teams
-        )
+        count_of_teams = len({team for match in round for team in match}.union({None})) - 1
+        score += DUPLICATED_TEAMS_WEIGHT * (NUM_OF_COURTS * TEAMS_PER_MATCH - count_of_teams)
 
     # Teams can only play teams from within their group
     # - 999 *(number of matches between different groups)

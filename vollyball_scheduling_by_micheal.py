@@ -6,14 +6,14 @@ Output is a grid where each column is a set of games and rows repeat: "team1, te
 
 """
 
-import random
 import copy
+import random
 
-groups = [
-    ["teamA1", "teamA2", "teamA3", "teamA4", "teamA5"],
-    ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
-    ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
-]
+# groups = [
+#     ["teamA1", "teamA2", "teamA3", "teamA4", "teamA5"],
+#     ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
+#     ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
+# ]
 groups = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
     ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
@@ -61,13 +61,11 @@ def print_table(output_matrix):
 
 
 def run_sims():
-    global groups, best_match_up_score, best_output_matrix
+    global groups, best_output_matrix
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
-    for sim_number in range(
-        num_of_simulation
-    ):  # run the setup "num_of_simulation" times and picks best
+    for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation" times and picks best
         match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
         match_up_score = get_score(result_groups, match_up_score)
 
@@ -75,7 +73,7 @@ def run_sims():
             best_match_up_score = match_up_score
             best_output_matrix = output_matrix
         average_match_up_score += match_up_score / num_of_simulation
-    return best_output_matrix, average_match_up_score
+    return best_output_matrix, average_match_up_score, best_match_up_score
 
 
 def run_sim(groups):
@@ -125,12 +123,8 @@ def run_sim(groups):
                     if team[3] < least:
                         least = team[3]
             escape = False
-            for i in range(
-                200
-            ):  # pick a group at random upto 100 times to find an available team.
-                if (
-                    escape
-                ):  # need to break out of 3 while loops, so this is how I did it.
+            for i in range(200):  # pick a group at random upto 100 times to find an available team.
+                if escape:  # need to break out of 3 while loops, so this is how I did it.
                     break
                 if i == 100:
                     least += 1
@@ -238,7 +232,7 @@ def get_score(groups, match_up_score):
 
 
 if __name__ == "__main__":
-    best_output_matrix, average_match_up_score = run_sims()
+    best_output_matrix, average_match_up_score, best_match_up_score = run_sims()
     print_table(best_output_matrix)
     print(
         best_match_up_score,
