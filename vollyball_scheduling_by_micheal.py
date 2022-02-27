@@ -28,6 +28,13 @@ old_groups = groups
 
 
 def reformat_teams(groups):
+    """
+    replace team with [
+        team_name, [teams the can play against], [teams already played against],
+        games_played, [backup of teams to play against], games refereed
+    ]
+    """
+    new_groups = []
     for group in groups:
         new_group = []
         for team in group:
@@ -38,39 +45,32 @@ def reformat_teams(groups):
             random.shuffle(playable)
             new_group.append([team, playable, [], 0, playable.copy(), 0])
         new_groups.append(new_group)
-    # print(new_groups)
     return new_groups
 
 
-def print_table(output_matix):
+def print_table(output_matrix):
     """
     This prints the transpose of the table in the code
     """
     for i in range(num_of_courts * 3):
         to_output = ""
         for j in range(rounds):
-            to_output = to_output + "\t\t" + output_matix[j][i]
+            to_output = to_output + "\t\t" + output_matrix[j][i]
         print(to_output[2:])
 
 
 def run_sims():
-    global groups, new_groups, best_match_up_score, best_output_matrix
+    global groups, best_match_up_score, best_output_matrix
     best_output_matrix = []
-    best_min = 0
-    best_max = 0
-    best_match_up_score = 999999
+    best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for sim_number in range(
             num_of_simulation
     ):  # run the setup "num_of_simulation" times and picks best
         groups = copy.deepcopy(old_groups)
-        new_groups = []
         output_matrix = []
         match_up_score = 0  # how bad the setup of matches is
-        # replace team with [
-        #   team_name, [teams the can play against], [teams already played against],
-        #   games_played, [backup of teams to play against], games refereed
-        # ]
+
         groups = reformat_teams(groups)
 
         for round in range(rounds):
