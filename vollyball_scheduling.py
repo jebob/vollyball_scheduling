@@ -16,10 +16,10 @@ import random
 #     ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
 # ]
 ORIGINAL_GROUPS = [
-    ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
-    ["Team2-01", "Team2-02", "Team2-03", "Team2-04", "Team2-05"],
-    ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
-    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
+    ["Team1-01", "Team1-02", "Team1-03", "Team1-04"],
+    ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
+    ["Team3-01", "Team3-02", "Team3-03", "Team3-04"],
+    ["Team4-01", "Team4-02", "Team4-03", "Team4-04"],
 ]
 NUM_OF_SIMULATION: int = 500  # number of times it tries to produce a setup, higher improves matching but slows program
 ROUNDS = 11  # number of rounds of games
