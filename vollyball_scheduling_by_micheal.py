@@ -68,7 +68,7 @@ def run_sims(groups):
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
-    for sim_number in range(num_of_simulation):  # run the setup "num_of_simulation" times and picks best
+    for _ in range(num_of_simulation):  # run the setup "num_of_simulation" times and picks best
         match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
         match_up_score = get_score(result_groups, match_up_score)
 
@@ -87,9 +87,9 @@ def run_sim(groups):
     match_up_score = 0  # how bad the setup of matches is
     # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
-    for round in range(rounds):
+    for _ in range(rounds):
         courts = []
-        for i in range(used_courts):
+        for _ in range(used_courts):
             courts.append([])
         # fill in 1 court per group to help balance the numbers
         court_to_fill = -1  # court number being filled
@@ -187,7 +187,7 @@ def run_sim(groups):
                 court[2] = group[best_team][0]
             else:  # find one from a different group
                 match_up_score += 0.1
-                for j in range(100):
+                for _ in range(100):
                     group = groups[random.randint(0, len(groups) - 1)]
                     i = 0
                     for team in group:  # try to find a ref from the same group

@@ -31,7 +31,7 @@ def starting_solution() -> List[List[Tuple[str, str, str]]]:
     solution = []
     for _ in range(ROUNDS):
         column = []
-        for court in range(NUM_OF_COURTS):
+        for _ in range(NUM_OF_COURTS):
             match = tuple(random.choices(all_teams, k=3))
             column.append(match)
         solution.append(column)
