@@ -20,10 +20,14 @@ ORIGINAL_GROUPS = [
     ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
     ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
 ]
-NUM_OF_SIMULATION: int = 200  # number of times it tries to produce a setup, higher improves matching but slows program
+NUM_OF_SIMULATION: int = 500  # number of times it tries to produce a setup, higher improves matching but slows program
 ROUNDS = 11  # number of rounds of games
 NUM_OF_COURTS = 6
 COURTS_TO_USE = min(NUM_OF_COURTS, len({team for group in ORIGINAL_GROUPS for team in group}) // 3)
+
+
+class EmptyCourtException(Exception):
+    """thrown when the court is unexpectedly empty"""
 
 
 def reformat_teams(given_groups):
@@ -69,12 +73,12 @@ def run_sims(groups):
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for _ in range(NUM_OF_SIMULATION):  # run the setup "NUM_OF_SIMULATION" times and picks best
-        # found another bug which crashes the code once every few hundred games.
+        # Micheal found another bug which crashes the code once every few hundred games.
         # where if for all teams the [teams they can play against] are already playing someone else, no game gets
-        # added causing an empty court and a crash. due to rarity, he just stuck a "try:   except:" after run_sim
+        # added causing an empty court and a crash. Due to rarity, we just catch the error and continue.
         try:
             match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
-        except:
+        except EmptyCourtException:
             pass
         match_up_score = get_score(result_groups, match_up_score)
 
@@ -185,6 +189,8 @@ def add_referees(courts, groups, occupied):
     # add referees
     match_up_score = 0  # how bad the setup of matches is
     for court in courts:
+        if not court:
+            raise EmptyCourtException
         group = groups[court[2]]
         found = False
         min_refs = 9999  # minimum number of games refereed by a team in the group
@@ -200,6 +206,7 @@ def add_referees(courts, groups, occupied):
         if found:
             occupied.append(group[best_team][0])
             court[2] = group[best_team][0]
+            group[best_team][5] += 1
         else:  # find one from a different group
             match_up_score += 0.1
             for _ in range(100):
@@ -215,6 +222,7 @@ def add_referees(courts, groups, occupied):
                 if found:
                     occupied.append(group[best_team][0])
                     court[2] = group[best_team][0]
+                    group[best_team][5] += 1
                     break
     return match_up_score
 
