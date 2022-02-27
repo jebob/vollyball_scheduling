@@ -14,7 +14,7 @@ import random
 #     ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
 #     ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
 # ]
-groups = [
+original_groups = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
     ["Team2-01", "Team2-02", "Team2-03", "Team2-04", "Team2-05"],
     ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
@@ -23,10 +23,10 @@ groups = [
 num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
 rounds = 11  # number of rounds of games
 num_of_courts = 6
-used_courts = min(num_of_courts, len({team for group in groups for team in group}) // 3)
+used_courts = min(num_of_courts, len({team for group in original_groups for team in group}) // 3)
 
 
-def reformat_teams(groups):
+def reformat_teams(given_groups):
     """
     replace team with [
         team_name,
@@ -38,7 +38,7 @@ def reformat_teams(groups):
     ]
     """
     new_groups = []
-    for group in groups:
+    for group in given_groups:
         new_group = []
         for team in group:
             playable = group.copy()
@@ -60,12 +60,12 @@ def print_table(output_matrix):
         print(to_output[2:])
 
 
-def run_sims():
+def run_sims(groups):
     """
     generate a collection of solutions with a bit of randomness and return the best one,
     the best score and the average score
     """
-    global groups, best_output_matrix
+    global best_output_matrix
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
@@ -86,6 +86,7 @@ def run_sim(groups):
     """
     output_matrix = []
     match_up_score = 0  # how bad the setup of matches is
+    # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
     for round in range(rounds):
         courts = []
@@ -211,6 +212,10 @@ def run_sim(groups):
 
 
 def get_score(groups, match_up_score):
+    """
+    given a partially calculated score, and the datastructure describing the solution,
+    calculate the final score
+    """
     min_games = 9999
     max_games = 0
     for group in groups:
@@ -239,7 +244,7 @@ def get_score(groups, match_up_score):
 
 
 if __name__ == "__main__":
-    best_output_matrix, average_match_up_score, best_match_up_score = run_sims()
+    best_output_matrix, average_match_up_score, best_match_up_score = run_sims(original_groups)
     print_table(best_output_matrix)
     print(
         best_match_up_score,
