@@ -21,7 +21,6 @@ repos:
       args:
       # outside of docker we have no guarantee that dependencies are installed
       - --disable=import-error
-  # mypy in the precommit hook should be enabled after it is enabled in the CI
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: ''  # Use the sha / tag you want to point at
     hooks:

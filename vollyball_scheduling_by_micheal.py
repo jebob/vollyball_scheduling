@@ -16,9 +16,9 @@ import random
 # ]
 groups = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
-    ["Team2-01", "Team2-02", "Team2-03", "Team2-04"],
-    ["Team3-01", "Team3-02", "Team3-03", "Team3-04"],
-    ["Team4-01", "Team4-02", "Team4-03", "Team4-04"],
+    ["Team2-01", "Team2-02", "Team2-03", "Team2-04", "Team2-05"],
+    ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
+    ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
 ]
 num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
 rounds = 11  # number of rounds of games
@@ -61,6 +61,10 @@ def print_table(output_matrix):
 
 
 def run_sims():
+    """
+    generate a collection of solutions with a bit of randomness and return the best one,
+    the best score and the average score
+    """
     global groups, best_output_matrix
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
@@ -77,6 +81,9 @@ def run_sims():
 
 
 def run_sim(groups):
+    """
+    generate a single solution and partially scores it
+    """
     output_matrix = []
     match_up_score = 0  # how bad the setup of matches is
     groups = reformat_teams(groups)

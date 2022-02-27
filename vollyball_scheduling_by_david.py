@@ -27,7 +27,7 @@ DUPLICATED_TEAMS_WEIGHT = 999
 
 def starting_solution() -> List[List[Tuple[str, str, str]]]:
     """Creates an initial solution to iterate on"""
-    all_teams = sum(groups, [])
+    all_teams: List[str] = sum(groups, [])
     solution = []
     for _ in range(ROUNDS):
         column = []
@@ -35,7 +35,7 @@ def starting_solution() -> List[List[Tuple[str, str, str]]]:
             match = tuple(random.choices(all_teams, k=3))
             column.append(match)
         solution.append(column)
-    return solution
+    return solution  # type: ignore
 
 
 def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
