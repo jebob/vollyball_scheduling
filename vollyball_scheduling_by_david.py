@@ -3,7 +3,7 @@ Code to attempt to find the best setup of matches for playing volly ball, with 1
 Input is a list of lists of team names. Each outer list is a group. Don't repeat team names.
 Output is a grid where each column is a set of games and rows repeat: "team1, team2, referee" for a match.
 
-A solution is a list of rounds
+A solution is a list of ROUNDS
 A round is a list of matches
 A match is a tuple of referee, left side player and right side player
 """
@@ -11,7 +11,7 @@ A match is a tuple of referee, left side player and right side player
 import random
 from typing import List, Tuple
 
-ROUNDS = 11  # number of rounds of the tournament
+ROUNDS = 11  # number of ROUNDS of the tournament
 NUM_OF_COURTS = 6
 TEAMS_PER_MATCH = 3
 groups = [
@@ -47,8 +47,8 @@ def get_score(solution: List[List[Tuple[str, str, str]]]) -> int:
     # Within each round a team can do at most one thing also every match must have a complete set of
     # (left team, right team, ref) These two score modifications can be calculated at the same time by adding a None
     # then looking for duplicates
-    for round in solution:
-        count_of_teams = len({team for match in round for team in match}.union({None})) - 1
+    for _round in solution:
+        count_of_teams = len({team for match in _round for team in match}.union({None})) - 1
         score += DUPLICATED_TEAMS_WEIGHT * (NUM_OF_COURTS * TEAMS_PER_MATCH - count_of_teams)
 
     # Teams can only play teams from within their group
@@ -80,6 +80,9 @@ def print_table(solution):
 
 
 def main():
+    """
+    generates and prints a solution
+    """
     initial_solution = starting_solution()
 
     print("Initial solution:")

@@ -14,16 +14,16 @@ import random
 #     ["teamB1", "teamB2", "teamB3", "teamB4", "teamB5", "teamB6", "teamB7"],
 #     ["teamC1", "teamC2", "teamC3", "teamC4", "teamC5", "teamC6", "teamC7", "teamC8"],
 # ]
-original_groups = [
+ORIGINAL_GROUPS = [
     ["Team1-01", "Team1-02", "Team1-03", "Team1-04", "Team1-05"],
     ["Team2-01", "Team2-02", "Team2-03", "Team2-04", "Team2-05"],
     ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
     ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
 ]
-num_of_simulation = 200  # number of times it tries to produce a setup, higher improves matching but slows program
-rounds = 11  # number of rounds of games
-num_of_courts = 6
-used_courts = min(num_of_courts, len({team for group in original_groups for team in group}) // 3)
+NUM_OF_SIMULATION: int = 200  # number of times it tries to produce a setup, higher improves matching but slows program
+ROUNDS = 11  # number of rounds of games
+NUM_OF_COURTS = 6
+COURTS_TO_USE = min(NUM_OF_COURTS, len({team for group in ORIGINAL_GROUPS for team in group}) // 3)
 
 
 def reformat_teams(given_groups):
@@ -53,9 +53,9 @@ def print_table(output_matrix):
     """
     This prints the transpose of the table in the code
     """
-    for i in range(used_courts * 3):
+    for i in range(COURTS_TO_USE * 3):
         to_output = ""
-        for j in range(rounds):
+        for j in range(ROUNDS):
             to_output = to_output + "\t\t" + output_matrix[j][i]
         print(to_output[2:])
 
@@ -68,14 +68,14 @@ def run_sims(groups):
     best_output_matrix = []
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
-    for _ in range(num_of_simulation):  # run the setup "num_of_simulation" times and picks best
+    for _ in range(NUM_OF_SIMULATION):  # run the setup "NUM_OF_SIMULATION" times and picks best
         match_up_score, output_matrix, result_groups = run_sim(copy.deepcopy(groups))
         match_up_score = get_score(result_groups, match_up_score)
 
         if match_up_score < best_match_up_score:
             best_match_up_score = match_up_score
             best_output_matrix = output_matrix
-        average_match_up_score += match_up_score / num_of_simulation
+        average_match_up_score += match_up_score / NUM_OF_SIMULATION
     return best_output_matrix, average_match_up_score, best_match_up_score
 
 
@@ -87,9 +87,9 @@ def run_sim(groups):
     match_up_score = 0  # how bad the setup of matches is
     # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
-    for _ in range(rounds):
+    for _ in range(ROUNDS):
         courts = []
-        for _ in range(used_courts):
+        for _ in range(COURTS_TO_USE):
             courts.append([])
         # fill in 1 court per group to help balance the numbers
         court_to_fill = -1  # court number being filled
@@ -97,9 +97,9 @@ def run_sim(groups):
         for group in groups:
             court_to_fill += 1
             i, j = 9999, 0
-            for k in range(len(group)):
-                if group[k][3] < i:
-                    i = group[k][3]
+            for k, team in enumerate(group):
+                if team[3] < i:
+                    i = team[3]
                     j = k
             if not group[j][1]:
                 group[j][1] = group[j][4].copy()
@@ -242,11 +242,18 @@ def get_score(groups, match_up_score):
     return match_up_score
 
 
-if __name__ == "__main__":
-    best_output_matrix, average_match_up_score, best_match_up_score = run_sims(original_groups)
+def main():
+    """
+    Run the simulation and print the results
+    """
+    best_output_matrix, average_match_up_score, best_match_up_score = run_sims(ORIGINAL_GROUPS)
     print_table(best_output_matrix)
     print(
         best_match_up_score,
         "best score compared to average of :",
         average_match_up_score,
     )
+
+
+if __name__ == "__main__":
+    main()
