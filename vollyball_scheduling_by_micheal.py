@@ -42,6 +42,17 @@ def reformat_teams(groups):
     return new_groups
 
 
+def print_table(output_matix):
+    """
+    This prints the transpose of the table in the code
+    """
+    for i in range(num_of_courts * 3):
+        to_output = ""
+        for j in range(rounds):
+            to_output = to_output + "\t\t" + output_matix[j][i]
+        print(to_output[2:])
+
+
 def run_sims():
     global groups, new_groups, best_match_up_score, best_output_matrix
     best_output_matrix = []
@@ -186,47 +197,50 @@ def run_sims():
                 to_output.append(court[1])
                 to_output.append(court[2])
             output_matrix.append(to_output)
-        min_games = 9999
-        max_games = 0
-        for group in groups:
-            min_g = 9999  # min games within the group
-            max_g = 0
-            min_used = 9999  # minimum number of times a group is either referee or playing
-            max_used = 0
-            for team in group:
-                # I would do "min_games = min(min_games,team[3])", but couldn't get it to work
-                if min_games > team[3]:
-                    min_games = team[3]
-                if max_games < team[3]:
-                    max_games = team[3]
-                if min_g > team[3]:
-                    min_g = team[3]
-                if max_g < team[3]:
-                    max_g = team[3]
-                if min_used > team[3] + team[5]:
-                    min_used = team[3] + team[5]
-                if max_used < team[3] + team[5]:
-                    max_used = team[3] + team[5]
-            match_up_score += (max_g - min_g) * 2 + (max_used - min_used)
-        match_up_score += (max_games - min_games) * 5
-        # print(match_up_score)
-        average_match_up_score += match_up_score / num_of_simulation
-        if match_up_score < best_match_up_score:
-            best_match_up_score = match_up_score
-            best_output_matrix = output_matrix
-            best_min = min_games
-            best_max = max_games
+        average_match_up_score, best_max, best_min = get_score(average_match_up_score, best_max, best_min, groups,
+                                                               match_up_score, output_matrix)
+    print_table(best_output_matrix)
     print("team with least games played:", best_min)
     print("team with most games played:", best_max)
     return average_match_up_score
 
 
-average_match_up_score = run_sims()
+def get_score(average_match_up_score, best_max, best_min, groups, match_up_score, output_matrix):
+    global best_match_up_score, best_output_matrix
+    min_games = 9999
+    max_games = 0
+    for group in groups:
+        min_g = 9999  # min games within the group
+        max_g = 0
+        min_used = 9999  # minimum number of times a group is either referee or playing
+        max_used = 0
+        for team in group:
+            # I would do "min_games = min(min_games,team[3])", but couldn't get it to work
+            if min_games > team[3]:
+                min_games = team[3]
+            if max_games < team[3]:
+                max_games = team[3]
+            if min_g > team[3]:
+                min_g = team[3]
+            if max_g < team[3]:
+                max_g = team[3]
+            if min_used > team[3] + team[5]:
+                min_used = team[3] + team[5]
+            if max_used < team[3] + team[5]:
+                max_used = team[3] + team[5]
+        match_up_score += (max_g - min_g) * 2 + (max_used - min_used)
+    match_up_score += (max_games - min_games) * 5
+    # print(match_up_score)
+    average_match_up_score += match_up_score / num_of_simulation
+    if match_up_score < best_match_up_score:
+        best_match_up_score = match_up_score
+        best_output_matrix = output_matrix
+        best_min = min_games
+        best_max = max_games
+    return average_match_up_score, best_max, best_min
 
-for i in range(num_of_courts * 3):
-    to_output = ""
-    for j in range(rounds):
-        to_output = to_output + "\t\t" + best_output_matrix[j][i]
-    print(to_output[2:])
 
-print(best_match_up_score, "best score compared to average of :", average_match_up_score)
+if __name__ == "__main__":
+    average_match_up_score = run_sims()
+
+    print(best_match_up_score, "best score compared to average of :", average_match_up_score)
