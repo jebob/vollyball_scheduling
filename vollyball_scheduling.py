@@ -4,6 +4,12 @@ I need to assign which team will play which when and which team will referee. Th
 Andrew Tatarek built in Microsoft Excel. The output of this file is a grid where each column is a set of games and
 rows repeat: "team1, team2, referee" for each match.
 
+Tries to minimize score =
+    Number of games where the referee is from a different group * 0.1
+    + (max(games played per team) - min(games played per team)) * 5
+    + sum(max(games played per team) - min(games played per team) for each group) * 2
+    + sum(max(games played or refereed per team) - min(games played or refereed per team) for each group)
+
 The code in this file was written jointly by Michael Howlett and David Howlett.
 """
 
