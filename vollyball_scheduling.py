@@ -107,8 +107,8 @@ def run_sim(groups):
     groups = reformat_teams(groups)
     match_up_score = 0
     for _ in range(ROUNDS):
-        court_to_fill, courts, occupied = one_court_per_group(groups)
-        fill_in_missing_players(court_to_fill, courts, groups, occupied)
+        courts, occupied = one_court_per_group(groups)
+        fill_in_missing_players(courts, groups, occupied)
         match_up_score += add_referees(courts, groups, occupied)
         to_output = []
         for court in courts:
@@ -122,10 +122,8 @@ def one_court_per_group(groups):
     This fills in 1 court per group to help balance the number of courts allocated to each group
     """
     courts = [[]] * COURTS_TO_USE
-    court_to_fill = -1  # court number being filled
     occupied = []  # teams which are busy.
-    for group in groups:
-        court_to_fill += 1
+    for court_id, group in enumerate(groups):
         i, j = 9999, 0
         for k, team in enumerate(group):
             if team[3] < i:
@@ -133,7 +131,7 @@ def one_court_per_group(groups):
                 j = k
         if not group[j][1]:
             group[j][1] = group[j][4].copy()
-        courts[court_to_fill] = [group[j][0], group[j][1][0], court_to_fill]
+        courts[court_id] = [group[j][0], group[j][1][0], court_id]
         # update team information so that the teams don't repeat.
         occupied.append(group[j][0])
         occupied.append(group[j][1][0])
@@ -149,15 +147,17 @@ def one_court_per_group(groups):
         group[j][3] = group[j][3] + 1
         group[j][2].append(group[j][1][0])
         group[j][1].pop(0)
-    return court_to_fill, courts, occupied
+    return courts, occupied
 
 
-def fill_in_missing_players(court_to_fill, courts, groups, occupied):
+def fill_in_missing_players(courts, groups, occupied):
     """
     fills in players for the remaining courts with some randomness
     """
-    while court_to_fill < len(courts) - 1:
-        court_to_fill += 1
+    for court_id, court in enumerate(courts):
+        if court:
+            # Court already filled
+            continue
         # find team with the least games
         least = min(team[3] for group in groups for team in group)
         escape = False
@@ -181,7 +181,7 @@ def fill_in_missing_players(court_to_fill, courts, groups, occupied):
                         if team2[0] in team[1]:
                             if team2[0] not in occupied:
                                 # a game shall be played between team2 and team 1
-                                courts[court_to_fill] = [
+                                courts[court_id] = [
                                     team[0],
                                     team2[0],
                                     group_no,
