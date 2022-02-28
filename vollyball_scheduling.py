@@ -52,6 +52,13 @@ class TeamStats:
         self.games_refereed = 0
         self.backup_opponents = playable.copy()
 
+    def play(self, other: str):
+        if other not in self.eligible_opponents:
+            self.eligible_opponents.extend(self.backup_opponents)
+        self.eligible_opponents.remove(other)
+        self.previous_opponents.append(other)
+        self.games_played += 1
+
 
 def reformat_teams(given_groups):
     """
@@ -140,15 +147,9 @@ def one_court_per_group(groups):
         # update team 2 info
         for team in group:
             if team.id == group[j].eligible_opponents[0]:
-                if group[j].id not in team.eligible_opponents:
-                    team.eligible_opponents = team.eligible_opponents + team.backup_opponents.copy()
-                team.eligible_opponents.remove(group[j].id)
-                team.previous_opponents.append(group[j].id)
-                team.games_played += 1
+                team.play(group[j].id)
         # update team 1 info
-        group[j].games_played += 1
-        group[j].previous_opponents.append(group[j].eligible_opponents[0])
-        group[j].eligible_opponents.pop(0)
+        group[j].play(group[j].eligible_opponents[0])
     return courts, occupied
 
 
@@ -192,12 +193,8 @@ def fill_in_missing_players(courts, groups, occupied):
                                     team2.eligible_opponents = team2.backup_opponents.copy()
                                 occupied.append(team2.id)
                                 occupied.append(team.id)
-                                team.games_played += 1
-                                team.previous_opponents.append(team2.id)
-                                team.eligible_opponents.remove(team2.id)
-                                team2.games_played += 1
-                                team2.previous_opponents.append(team.id)
-                                team2.eligible_opponents.remove(team.id)
+                                team.play(team2.id)
+                                team2.play(team.id)
                                 escape = True
                                 break
 
