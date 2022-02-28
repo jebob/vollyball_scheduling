@@ -112,9 +112,7 @@ def run_sim(groups):
         match_up_score = add_referees(courts, groups, occupied)
         to_output = []
         for court in courts:
-            to_output.append(court[0])
-            to_output.append(court[1])
-            to_output.append(court[2])
+            to_output.extend(court)
         output_matrix.append(to_output)
     return match_up_score, output_matrix, groups
 
