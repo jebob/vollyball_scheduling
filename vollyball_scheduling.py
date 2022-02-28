@@ -208,14 +208,12 @@ def add_referees(courts, groups, occupied):
         found = False
         min_refs = 9999  # minimum number of games refereed by a team in the group
         best_team = 9999  # team with the least referees
-        i = 0
-        for team in group:  # try to find a ref from the same group
+        for i, team in enumerate(group):  # try to find a ref from the same group
             if team[0] not in occupied:
                 if team[5] <= min_refs:
                     min_refs = team[5]
                     best_team = i
                     found = True
-            i += 1
         if found:
             occupied.append(group[best_team][0])
             court[2] = group[best_team][0]
@@ -224,14 +222,12 @@ def add_referees(courts, groups, occupied):
             match_up_score += 0.1
             for _ in range(100):
                 group = groups[random.randint(0, len(groups) - 1)]
-                i = 0
-                for team in group:  # try to find a ref from the same group
+                for i, team in enumerate(group):  # try to find a ref from the same group
                     if team[0] not in occupied:
                         if team[5] <= min_refs:
                             min_refs = team[5]
                             best_team = i
                             found = True
-                    i += 1
                 if found:
                     occupied.append(group[best_team][0])
                     court[2] = group[best_team][0]
