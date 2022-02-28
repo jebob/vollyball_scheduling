@@ -105,11 +105,11 @@ def run_sim(groups):
     output_matrix = []
     # at this point in the calculation the number format of groups is changed
     groups = reformat_teams(groups)
-    match_up_score = 999999
+    match_up_score = 0
     for _ in range(ROUNDS):
         court_to_fill, courts, occupied = one_court_per_group(groups)
         fill_in_missing_players(court_to_fill, courts, groups, occupied)
-        match_up_score = add_referees(courts, groups, occupied)
+        match_up_score += add_referees(courts, groups, occupied)
         to_output = []
         for court in courts:
             to_output.extend(court)
