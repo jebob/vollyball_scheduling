@@ -4,7 +4,7 @@ I need to assign which team will play which when and which team will referee. Th
 Andrew Tatarek built in Microsoft Excel. The output of this file is a grid where each column is a set of games and
 rows repeat: "team1, team2, referee" for each match.
 
-The code in this file was written jointly by Micheal Howlett and David Howlett.
+The code in this file was written jointly by Michael Howlett and David Howlett.
 """
 
 import copy
@@ -76,7 +76,7 @@ def run_sims(groups):
     best_match_up_score = 999999  # This will be overridden later
     average_match_up_score = 0
     for _ in range(NUM_OF_SIMULATION):  # run the setup "NUM_OF_SIMULATION" times and picks best
-        # Micheal found another bug which crashes the code once every few hundred games.
+        # Michael found another bug which crashes the code once every few hundred games.
         # where if for all teams the [teams they can play against] are already playing someone else, no game gets
         # added causing an empty court and a crash. Due to rarity, we just catch the error and continue.
         try:
