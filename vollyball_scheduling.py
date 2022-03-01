@@ -47,17 +47,18 @@ class TeamStats:
         playable.remove(name)
         random.shuffle(playable)
         self.eligible_opponents = playable
-        self.previous_opponents = []
         self.games_played = 0
         self.games_refereed = 0
-        self.backup_opponents = playable.copy()
+        self._backup_opponents = playable.copy()
 
     def play(self, other: str):
         if other not in self.eligible_opponents:
-            self.eligible_opponents.extend(self.backup_opponents)
+            self.refresh_eligible()
         self.eligible_opponents.remove(other)
-        self.previous_opponents.append(other)
         self.games_played += 1
+
+    def refresh_eligible(self):
+        self.eligible_opponents.extend(self._backup_opponents)
 
 
 def reformat_teams(given_groups):
@@ -139,7 +140,7 @@ def one_court_per_group(groups: List[List[TeamStats]]):
                 i = team.games_played
                 j = k
         if not group[j].eligible_opponents:
-            group[j].eligible_opponents = group[j].backup_opponents.copy()
+            group[j].refresh_eligible()
         courts[court_id] = [group[j].id, group[j].eligible_opponents[0], court_id]
         # update team information so that the teams don't repeat.
         occupied.append(group[j].id)
@@ -179,7 +180,7 @@ def fill_in_missing_players(courts, groups, occupied):
                     continue
                 if team.games_played == least:  # if no team has played less than this one
                     if not team.eligible_opponents:
-                        team.eligible_opponents = team.backup_opponents.copy()
+                        team.refresh_eligible()
                     for team2 in group:
                         if team2.id not in team.eligible_opponents:
                             continue
