@@ -209,34 +209,33 @@ def add_referees(courts, groups, occupied):
         if not court:
             raise EmptyCourtException
         group = groups[court[2]]
-        found = False
         min_refs = 9999  # minimum number of games refereed by a team in the group
-        best_team = 9999  # team with the least referees
+        best_team = None  # team with the least referees
         for i, team in enumerate(group):  # try to find a ref from the same group
             if team.id not in occupied:
-                if team.games_refereed <= min_refs:
+                if team.games_refereed < min_refs:
                     min_refs = team.games_refereed
-                    best_team = i
-                    found = True
-        if found:
-            occupied.append(group[best_team].id)
-            court[2] = group[best_team].id
-            group[best_team].games_refereed += 1
+                    best_team = team
+        if best_team is not None:
+            occupied.append(best_team.id)
+            court[2] = best_team.id
+            best_team.games_refereed += 1
         else:  # find one from a different group
             match_up_score += 0.1
-            for _ in range(100):
-                group = groups[random.randint(0, len(groups) - 1)]
-                for i, team in enumerate(group):  # try to find a ref from the same group
+            for group in random.sample(groups, len(groups)):
+                for i, team in enumerate(group):
                     if team.id not in occupied:
-                        if team.games_refereed <= min_refs:
+                        if team.games_refereed < min_refs:
                             min_refs = team.games_refereed
-                            best_team = i
-                            found = True
-                if found:
-                    occupied.append(group[best_team].id)
-                    court[2] = group[best_team].id
-                    group[best_team].games_refereed += 1
+                            best_team = team
+                if best_team is not None:
+                    occupied.append(best_team.id)
+                    court[2] = best_team.id
+                    best_team.games_refereed += 1
                     break
+            else:
+                # todo: handle case where no referee found
+                raise NotImplementedError
     return match_up_score
 
 
