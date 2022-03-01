@@ -28,10 +28,12 @@ ORIGINAL_GROUPS = [
     ["Team3-01", "Team3-02", "Team3-03", "Team3-04", "Team3-05"],
     ["Team4-01", "Team4-02", "Team4-03", "Team4-04", "Team4-05", "Team4-06"],
 ]
+ALL_TEAMS = [team for group in ORIGINAL_GROUPS for team in group]
+assert len(ALL_TEAMS) == len(set(ALL_TEAMS)), "Duplicate team, or team in >1 group!"
 NUM_OF_SIMULATION: int = 500  # number of times it tries to produce a setup, higher improves matching but slows program
 ROUNDS = 11  # number of rounds of games
 NUM_OF_COURTS = 6
-COURTS_TO_USE = min(NUM_OF_COURTS, len({team for group in ORIGINAL_GROUPS for team in group}) // 3)
+COURTS_TO_USE = min(NUM_OF_COURTS, len(ALL_TEAMS) // 3)
 # debugging is easier if the randomness is not really random.
 # random.seed(10)
 
