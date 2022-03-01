@@ -228,11 +228,10 @@ def add_referees(courts, groups, occupied):
                         if team.games_refereed < min_refs:
                             min_refs = team.games_refereed
                             best_team = team
-                if best_team is not None:
-                    occupied.append(best_team.id)
-                    court[2] = best_team.id
-                    best_team.games_refereed += 1
-                    break
+            if best_team is not None:
+                occupied.append(best_team.id)
+                court[2] = best_team.id
+                best_team.games_refereed += 1
             else:
                 # todo: handle case where no referee found
                 raise NotImplementedError
