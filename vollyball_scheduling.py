@@ -181,22 +181,22 @@ def fill_in_missing_players(courts, groups, occupied):
                     if not team.eligible_opponents:
                         team.eligible_opponents = team.backup_opponents.copy()
                     for team2 in group:
-                        if team2.id in team.eligible_opponents:
-                            if team2.id not in occupied:
-                                # a game shall be played between team2 and team 1
-                                courts[court_id] = [
-                                    team.id,
-                                    team2.id,
-                                    group_no,
-                                ]
-                                if team.id not in team2.eligible_opponents:
-                                    team2.eligible_opponents = team2.backup_opponents.copy()
-                                occupied.append(team2.id)
-                                occupied.append(team.id)
-                                team.play(team2.id)
-                                team2.play(team.id)
-                                escape = True
-                                break
+                        if team2.id not in team.eligible_opponents:
+                            continue
+                        if team2.id in occupied:
+                            continue
+                        # a game shall be played between team and team2
+                        courts[court_id] = [
+                            team.id,
+                            team2.id,
+                            group_no,
+                        ]
+                        occupied.append(team2.id)
+                        occupied.append(team.id)
+                        team.play(team2.id)
+                        team2.play(team.id)
+                        escape = True
+                        break
 
 
 def add_referees(courts, groups, occupied):
