@@ -126,7 +126,7 @@ def run_sim(groups):
     return match_up_score, output_matrix, groups
 
 
-def one_court_per_group(groups):
+def one_court_per_group(groups: List[List[TeamStats]]):
     """
     This fills in 1 court per group to help balance the number of courts allocated to each group
     """
