@@ -10,7 +10,7 @@ Tries to minimize score =
     + sum(max(games played per team) - min(games played per team) for each group) * 2
     + sum(max(games played or refereed per team) - min(games played or refereed per team) for each group)
 
-The code in this file was written jointly by Michael Howlett and David Howlett.
+The code in this file was written jointly by Michael Howlett, David Howlett and Robert Howlett.
 """
 
 import copy
