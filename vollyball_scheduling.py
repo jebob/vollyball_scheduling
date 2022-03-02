@@ -5,6 +5,9 @@ Andrew Tatarek built in Microsoft Excel. The output of this file is a grid where
 rows repeat: "team1, team2, referee" for each match.
 
 The code in this file was written jointly by Micheal Howlett and David Howlett.
+To enable easy deployment we put all the logic in a single file so that it can be pasted into
+https://www.w3schools.com/python/trypython.asp?filename=demo_ref_min
+for easy deployment.
 """
 
 import copy
