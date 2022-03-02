@@ -133,7 +133,7 @@ def one_court_per_group(groups: List[List[TeamStats]]):
     """
     This fills in 1 court per group to help balance the number of courts allocated to each group
     """
-    courts = [[]] * COURTS_TO_USE
+    courts: List[List] = [[]] * COURTS_TO_USE
     occupied = []  # teams which are busy.
     for court_id, group in enumerate(groups):
         i, j = 9999, 0
