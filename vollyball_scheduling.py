@@ -11,6 +11,9 @@ Tries to minimize score =
     + sum(max(games played or refereed per team) - min(games played or refereed per team) for each group)
 
 The code in this file was written jointly by Michael Howlett, David Howlett and Robert Howlett.
+To enable easy deployment we put all the logic in a single file so that it can be pasted into
+https://www.w3schools.com/python/trypython.asp?filename=demo_ref_min
+for easy deployment.
 """
 
 import copy
