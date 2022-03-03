@@ -248,27 +248,13 @@ def get_score(groups, match_up_score):
     given a partially calculated score, and the datastructure describing the solution,
     calculate the final score
     """
-    min_games = 9999
-    max_games = 0
+    min_games = min(team.games_played for group in groups for team in group)
+    max_games = max(team.games_played for group in groups for team in group)
     for group in groups:
-        min_g = 9999  # min games within the group
-        max_g = 0
-        min_used = 9999  # minimum number of times a group is either referee or playing
-        max_used = 0
-        for team in group:
-            # I would do "min_games = min(min_games,team.games_played)", but couldn't get it to work
-            if min_games > team.games_played:
-                min_games = team.games_played
-            if max_games < team.games_played:
-                max_games = team.games_played
-            if min_g > team.games_played:
-                min_g = team.games_played
-            if max_g < team.games_played:
-                max_g = team.games_played
-            if min_used > team.games_played + team.games_refereed:
-                min_used = team.games_played + team.games_refereed
-            if max_used < team.games_played + team.games_refereed:
-                max_used = team.games_played + team.games_refereed
+        min_used = min(team.games_played for team in group)
+        max_used = max(team.games_played for team in group)
+        min_g = min(team.games_played + team.games_refereed for team in group)
+        max_g = max(team.games_played + team.games_refereed for team in group)
         match_up_score += (max_g - min_g) * 2 + (max_used - min_used)
     match_up_score += (max_games - min_games) * 5
     # print(match_up_score)
