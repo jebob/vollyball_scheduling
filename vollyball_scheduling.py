@@ -251,10 +251,10 @@ def get_score(groups, match_up_score):
     min_games = min(team.games_played for group in groups for team in group)
     max_games = max(team.games_played for group in groups for team in group)
     for group in groups:
-        min_used = min(team.games_played for team in group)
-        max_used = max(team.games_played for team in group)
-        min_g = min(team.games_played + team.games_refereed for team in group)
-        max_g = max(team.games_played + team.games_refereed for team in group)
+        min_g = min(team.games_played for team in group)
+        max_g = max(team.games_played for team in group)
+        min_used = min(team.games_played + team.games_refereed for team in group)
+        max_used = max(team.games_played + team.games_refereed for team in group)
         match_up_score += (max_g - min_g) * 2 + (max_used - min_used)
     match_up_score += (max_games - min_games) * 5
     # print(match_up_score)
