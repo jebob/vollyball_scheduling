@@ -1,0 +1,23 @@
+[project]
+name = "example_package_YOUR_USERNAME_HERE"
+version = "0.0.1"
+description = "A small example package"
+authors = [
+    { name="Robert Howlett", email="robert@howletts.org.uk" },
+]
+requires-python = ">=3.7"
+packages = [
+    { include = "project_name", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python-Levenshtein =  "0.22.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "7.2.1"
+
+[tool.poetry.scripts]
+tool-name = 'project_name.tool_name.command_line:main'
+
+[tool.black]
+line-length = 120
