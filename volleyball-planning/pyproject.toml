@@ -5,9 +5,10 @@ authors = [
 ]
 description = ""
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.12"
 dependencies = [
-    "python-Levenshtein==0.22.0",
+    "pulp==3.2.1",
+    "highspy==1.11.0",
 ]
 version = "0.1.0"
 
