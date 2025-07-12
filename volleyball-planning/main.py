@@ -1,4 +1,5 @@
 from collections import defaultdict
+import math
 import pulp
 
 TEAM_SLOTS = "abcdefghijklmnop"
@@ -166,6 +167,10 @@ def get_match_days_for_league_size(size: int):
     return megadict[size]
 
 
+def get_match_slots_for_league_size(size: int):
+    return int(math.ceil(size / 3))
+
+
 def solve_problem(data: dict):
     problem = pulp.LpProblem("volleyball-planning", pulp.LpMinimize)
 
@@ -175,67 +180,136 @@ def solve_problem(data: dict):
     data["leagues"] = sorted(leagues_to_teams.keys())
     print(leagues_to_teams)
 
-    leagues_to_match_days = {
-        league: get_match_days_for_league_size(len(teams_in_league))
+    # leagues_to_match_days = {
+    #     league: get_match_days_for_league_size(len(teams_in_league))
+    #     for league, teams_in_league in leagues_to_teams.items()
+    # }
+    leagues_to_match_slots = {
+        league: get_match_slots_for_league_size(len(teams_in_league))
         for league, teams_in_league in leagues_to_teams.items()
     }
-    match_days_vs_dates = {
+    print(leagues_to_match_slots)
+    # match_days_vs_dates = {
+    #     league: {
+    #         match_day: {
+    #             date: pulp.LpVariable(name=f"match_days_vs_dates_{league}_{match_day}_{date}", cat="Binary")
+    #             for date in data["dates"]
+    #         }
+    #         for match_day in range(len(leagues_to_match_days[league]))
+    #     }
+    #     for league in data["leagues"]
+    # }
+    # teams_vs_team_slots = {
+    #     league: {
+    #         team: {
+    #             team_slot: pulp.LpVariable(name=f"teams_vs_team_slots_{league}_{team}_{team_slot}", cat="Binary")
+    #             for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]
+    #         }
+    #         for team in leagues_to_teams[league]
+    #     }
+    #     for league in data["leagues"]
+    # }
+    match_slots_active = {
         league: {
-            match_day: {
-                date: pulp.LpVariable(name=f"match_days_vs_dates_{league}_{match_day}_{date}", cat="Binary")
-                for date in data["dates"]
+            date: {
+                match_slot: pulp.LpVariable(name=f"match_slots_active_{league}_{date}_{match_slot}", cat="Binary")
+                for match_slot in range(leagues_to_match_slots[league])
             }
-            for match_day in range(len(leagues_to_match_days[league]))
+            for date in data["dates"]
         }
         for league in data["leagues"]
     }
-    teams_vs_team_slots = {
+    teams_vs_match_slots = {
         league: {
             team: {
-                team_slot: pulp.LpVariable(name=f"teams_vs_team_slots_{league}_{team}_{team_slot}", cat="Binary")
-                for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]
+                date: {
+                    match_slot: pulp.LpVariable(name=f"teams_vs_match_slots_{league}_{team}_{date}_{match_slot}", cat="Binary")
+                    for match_slot in range(leagues_to_match_slots[league])
+                }
+                for date in data["dates"]
             }
             for team in leagues_to_teams[league]
         }
         for league in data["leagues"]
     }
-
-    for league in data["leagues"]:
-        # For each league, each team fills one team slot
-        for team in leagues_to_teams[league]:
-            problem += pulp.lpSum(teams_vs_team_slots[league][team][team_slot] for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]) == 1
-        # and each team slot has one team
-        for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]:
-            problem += pulp.lpSum(teams_vs_team_slots[league][team][team_slot] for team in leagues_to_teams[league]) == 1
-
-    # Each match day must happen exactly once
-    for league in data["leagues"]:
-        for match_day in range(len(leagues_to_match_days[league])):
-            problem += pulp.lpSum(match_days_vs_dates[league][match_day][date] for date in data["dates"]) == 1
-
-    # For each league, no more than one match day must happen per date
+    # match slot logic
     for league in data["leagues"]:
         for date in data["dates"]:
+            # Active match slots have three teams, inactive slots have no teams
+            for match_slot in range(leagues_to_match_slots[league]):
+                problem += (
+                    pulp.lpSum(
+                        teams_vs_match_slots[league][team][date][match_slot] for team in leagues_to_teams[league]
+                    )
+                    == match_slots_active[league][date][match_slot] * 3
+                )
+            # Teams can only participate in <=1 match slot/day
+            for team in leagues_to_teams[league]:
+                problem += (
+                    pulp.lpSum(
+                        teams_vs_match_slots[league][team][date][match_slot]
+                        for match_slot in range(leagues_to_match_slots[league])
+                    )
+                    <= 1
+                )
+
+        # temp: force some matches
+        for team in leagues_to_teams[league]:
             problem += (
                 pulp.lpSum(
-                    match_days_vs_dates[league][match_day][date]
-                    for match_day in range(len(leagues_to_match_days[league]))
+                    teams_vs_match_slots[league][team][date][match_slot]
+                    for date in data["dates"]
+                    for match_slot in range(leagues_to_match_slots[league])
                 )
-                <= 1
+                == 8
             )
+
+    # # Match day logic
+    # for league in data["leagues"]:
+    #     # For each league, each team fills one team slot
+    #     for team in leagues_to_teams[league]:
+    #         problem += pulp.lpSum(teams_vs_team_slots[league][team][team_slot] for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]) == 1
+    #     # and each team slot has one team
+    #     for team_slot in TEAM_SLOTS[:len(leagues_to_teams[league])]:
+    #         problem += pulp.lpSum(teams_vs_team_slots[league][team][team_slot] for team in leagues_to_teams[league]) == 1
+
+    # # Each match day must happen exactly once
+    # for league in data["leagues"]:
+    #     for match_day in range(len(leagues_to_match_days[league])):
+    #         problem += pulp.lpSum(match_days_vs_dates[league][match_day][date] for date in data["dates"]) == 1
+
+    # # For each league, no more than one match day must happen per date
+    # for league in data["leagues"]:
+    #     for date in data["dates"]:
+    #         problem += (
+    #             pulp.lpSum(
+    #                 match_days_vs_dates[league][match_day][date]
+    #                 for match_day in range(len(leagues_to_match_days[league]))
+    #             )
+    #             <= 1
+    #         )
     # todo: make a variable for team vs date
 
     problem.solve()
     print(pulp.LpStatus[problem.status])
 
-    sovled_match_day_dates = [
-        (league, match_day, date)
-        for league, inner_dict1 in match_days_vs_dates.items()
-        for match_day, inner_dict2 in inner_dict1.items()
-        for date, lp_var in inner_dict2.items()
+    # sovled_match_day_dates = [
+    #     (league, match_day, date)
+    #     for league, inner_dict1 in match_days_vs_dates.items()
+    #     for match_day, inner_dict2 in inner_dict1.items()
+    #     for date, lp_var in inner_dict2.items()
+    #     if lp_var.varValue > 0.5
+    # ]
+    # print(sovled_match_day_dates)
+    fixtures = [
+        (league, date, match_slot, team)
+        for league, inner_dict1 in teams_vs_match_slots.items()
+        for team, inner_dict2 in inner_dict1.items()
+        for date, inner_dict3 in inner_dict2.items()
+        for match_slot, lp_var in inner_dict3.items()
         if lp_var.varValue > 0.5
     ]
-    print(sovled_match_day_dates)
+    print(fixtures)
 
 
 def main():
