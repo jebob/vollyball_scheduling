@@ -188,7 +188,6 @@ def solve_problem(data: dict):
         league: get_match_slots_for_league_size(len(teams_in_league))
         for league, teams_in_league in leagues_to_teams.items()
     }
-    print(leagues_to_match_slots)
     # match_days_vs_dates = {
     #     league: {
     #         match_day: {
@@ -223,7 +222,9 @@ def solve_problem(data: dict):
         league: {
             team: {
                 date: {
-                    match_slot: pulp.LpVariable(name=f"teams_vs_match_slots_{league}_{team}_{date}_{match_slot}", cat="Binary")
+                    match_slot: pulp.LpVariable(
+                        name=f"teams_vs_match_slots_{league}_{team}_{date}_{match_slot}", cat="Binary"
+                    )
                     for match_slot in range(leagues_to_match_slots[league])
                 }
                 for date in data["dates"]
@@ -261,7 +262,7 @@ def solve_problem(data: dict):
                     for date in data["dates"]
                     for match_slot in range(leagues_to_match_slots[league])
                 )
-                == 8
+                >= 1
             )
 
     # # Match day logic
@@ -291,7 +292,8 @@ def solve_problem(data: dict):
     # todo: make a variable for team vs date
 
     problem.solve()
-    print(pulp.LpStatus[problem.status])
+    if (solve_status := pulp.LpStatus[problem.status]) != "Optimal":
+        raise ValueError(f"solve status {solve_status}")
 
     # sovled_match_day_dates = [
     #     (league, match_day, date)
@@ -301,14 +303,14 @@ def solve_problem(data: dict):
     #     if lp_var.varValue > 0.5
     # ]
     # print(sovled_match_day_dates)
-    fixtures = [
+    fixtures = sorted(
         (league, date, match_slot, team)
         for league, inner_dict1 in teams_vs_match_slots.items()
         for team, inner_dict2 in inner_dict1.items()
         for date, inner_dict3 in inner_dict2.items()
         for match_slot, lp_var in inner_dict3.items()
         if lp_var.varValue > 0.5
-    ]
+    )
     print(fixtures)
 
 
