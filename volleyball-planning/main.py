@@ -112,6 +112,18 @@ def get_match_slots_for_league_size(size: int):
     return int(math.ceil(size / 3))
 
 
+def get_match_day_preferences(dates, match_days) -> list[list[float]]:
+    n_dates = len(dates)
+    n_match_days = len(match_days)
+    all_preferences = []
+    for match_day in range(n_match_days):
+        fraction_through = match_day / (n_match_days - 1)  # 0-1 range
+        ideal_date_index = fraction_through * (n_dates - 1)
+        match_day_preferences = [0.5 ** abs(date_index - ideal_date_index) for date_index in range(n_dates)]
+        all_preferences.append(match_day_preferences)
+    return all_preferences
+
+
 def solve_problem(data: dict):
     problem = pulp.LpProblem("volleyball-planning", pulp.LpMinimize)
 
@@ -124,6 +136,9 @@ def solve_problem(data: dict):
         club_to_teams[club].append(team)
     clubs = sorted(club_to_teams.keys())
     leagues_to_match_days = {league: get_match_days_for_league(teams_in_league) for league, teams_in_league in leagues_to_teams.items()}
+    league_match_days_to_preferred_dates = {
+        league: get_match_day_preferences(data["dates"], match_days) for league, match_days in leagues_to_match_days.items()
+    }
     # Match slots: the nth game for a particular league on a particular match day.
     leagues_to_match_slots = {
         league: get_match_slots_for_league_size(len(teams_in_league)) for league, teams_in_league in leagues_to_teams.items()
@@ -142,7 +157,7 @@ def solve_problem(data: dict):
         club: {
             league: {
                 date: {
-                    match_slot: pulp.LpVariable(name=f"venue_bookings_{league}_{date}_{match_slot}_{club}", cat="Binary")
+                    match_slot: pulp.LpVariable(name=f"venue_bookings_{club}_{date}_{match_slot}_{league}", cat="Binary")
                     for match_slot in range(leagues_to_match_slots[league])
                 }
                 for date in data["dates"]
@@ -175,7 +190,6 @@ def solve_problem(data: dict):
             problem += (
                 pulp.lpSum(match_days_vs_dates[league][match_day][date] for match_day in range(len(leagues_to_match_days[league]))) <= 1
             )
-        # TODO: do we want to enforce that match days happen in order?
 
         # For each match day, we must book a venue for each match, matching the teams in the match
         for match_day in range(len(leagues_to_match_days[league])):
@@ -187,6 +201,14 @@ def solve_problem(data: dict):
                     problem += match_days_vs_dates[league][match_day][date] <= pulp.lpSum(
                         venue_bookings[club][league][date][match_slot] for club in relevant_clubs
                     )
+
+    # Objective function
+    problem += pulp.lpSum(
+        - preference * match_days_vs_dates[league][match_day][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
+        for league, match_days_to_preferred_dates in league_match_days_to_preferred_dates.items()
+        for match_day, preferred_dates in enumerate(match_days_to_preferred_dates)
+        for date, preference in zip(data["dates"],preferred_dates, strict=True )
+    )
 
     problem.solve()
     if (solve_status := pulp.LpStatus[problem.status]) != "Optimal":
@@ -213,7 +235,6 @@ def solve_problem(data: dict):
                         # assert key not in clubs_used_for_games
                         clubs_used_for_games[key] = club
 
-    # TODO: teams_vs_match_slots is currently mostly pointless, but maybe needs to be taken out
     fixtures = sorted(
         (league, date, match_day, clubs_used_for_games[(league, date, match_slot)], team)
         for league, inner_dict1 in match_days_vs_dates.items()
