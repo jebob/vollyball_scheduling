@@ -130,6 +130,7 @@ def get_match_slots_for_league_size(size: int):
 def get_match_day_preferences(dates, match_days) -> list[list[float]]:
     n_dates = len(dates)
     n_match_days = len(match_days)
+    assert n_dates >= n_match_days
     all_preferences = []
     for match_day in range(n_match_days):
         fraction_through = match_day / (n_match_days - 1)  # 0-1 range
@@ -210,6 +211,9 @@ def solve_problem(data: dict):
         # For each match day, we must book a venue for each match, matching the teams in the match
         for match_day in range(len(leagues_to_match_days[league])):
             for match_slot in range(leagues_to_match_slots[league]):
+                if match_slot >= len(leagues_to_match_days[league][match_day]):
+                    # not all match slots are used on all days
+                    continue
                 relevant_teams = leagues_to_match_days[league][match_day][match_slot]
                 relevant_clubs = {data["teams_to_club"][team] for team in relevant_teams}
 
@@ -238,6 +242,7 @@ def solve_problem(data: dict):
             )
             <= fair_number_of_bookings + slack_unfair_matches[club]
         )
+        # TODO: ensure that each _team_ has a fair number of home matches
 
     # Objective function
     problem += pulp.lpSum(
