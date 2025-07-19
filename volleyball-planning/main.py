@@ -7,6 +7,7 @@ from pathlib import Path
 TEAM_SLOTS = "abcdefghijklmnop"
 OUTPUT_DIR = Path(__file__).parent.parent / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
+SLACK = 1000
 
 
 def load_data():
@@ -90,6 +91,7 @@ def load_data():
 
 
 def get_match_days_for_league(teams: list[str]):
+    # TODO: test behaviour for a number of teams that isn't a multiple of 3.
     megadict = {
         9: [
             [{8, 0, 4}, {1, 5, 7}, {2, 3, 6}],
@@ -166,6 +168,10 @@ def solve_problem(data: dict):
         }
         for club in clubs
     }
+    slack_unfair_matches = {
+        club: pulp.LpVariable(name=f"slack_unfair_matches_{club}", lowBound=0)
+        for club in clubs
+    }
 
     # Clubs must not be overbooked
     for club in clubs:
@@ -202,13 +208,31 @@ def solve_problem(data: dict):
                         venue_bookings[club][league][date][match_slot] for club in relevant_clubs
                     )
 
+    club_match_slots = defaultdict(int)
+    for league, match_days in leagues_to_match_days.items():
+        for match_day in match_days:
+            for match in match_day:
+                for team in match:
+                    club = data["teams_to_club"][team]
+                    club_match_slots[club] += 1
+
+    for club in clubs:
+        # Need the +1, otherwise we end up with infeasibilities for clubs with e.g. 8 matches
+        fair_number_of_bookings = club_match_slots[club] / 3 + 1
+        problem += pulp.lpSum(
+            venue_bookings[club][league][date][match_slot]
+            for league, match_slots in leagues_to_match_slots.items()
+            for date in data["dates"]
+            for match_slot in range(match_slots)
+        ) <= fair_number_of_bookings + slack_unfair_matches[club]
+
     # Objective function
     problem += pulp.lpSum(
-        - preference * match_days_vs_dates[league][match_day][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
+        -preference * match_days_vs_dates[league][match_day][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
         for league, match_days_to_preferred_dates in league_match_days_to_preferred_dates.items()
         for match_day, preferred_dates in enumerate(match_days_to_preferred_dates)
-        for date, preference in zip(data["dates"],preferred_dates, strict=True )
-    )
+        for date, preference in zip(data["dates"], preferred_dates, strict=True)
+    ) + pulp.lpSum(slack_unfair_matches[club] for club in clubs)
 
     problem.solve()
     if (solve_status := pulp.LpStatus[problem.status]) != "Optimal":
