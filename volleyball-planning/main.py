@@ -102,7 +102,20 @@ def get_match_days_for_league(teams: list[str]):
             [{0, 1, 2}, {3, 4, 5}, {8, 6, 7}],
             [{0, 5, 7}, {8, 1, 3}, {2, 4, 6}],
             [{0, 3, 6}, {1, 4, 7}, {8, 2, 5}],
-        ]
+        ],
+        10: [
+            [{0, 3, 5}, {1, 4, 9}, {8, 2, 6}],
+            [{8, 0, 4}, {1, 5, 6}, {9, 2, 7}],
+            [{0, 9, 6}, {8, 2, 3}, {4, 5, 7}],
+            [{2, 4, 5}, {3, 6, 7}, {8, 9, 1}],
+            [{0, 4, 7}, {9, 3, 5}],
+            [{0, 2, 7}, {1, 3, 4}, {8, 5, 6}],
+            [{1, 5, 7}, {2, 4, 6}, {0, 9, 3}],
+            [{9, 4, 6}, {8, 3, 7}, {0, 1, 2}],
+            [{8, 4, 5}, {1, 6, 7}],
+            [{0, 1, 8}, {9, 2, 5}, {3, 4, 6}],
+            [{8, 9, 7}, {1, 2, 3}, {0, 5, 6}],
+        ],
     }
     schedule = megadict[len(teams)]
 
@@ -168,10 +181,7 @@ def solve_problem(data: dict):
         }
         for club in clubs
     }
-    slack_unfair_matches = {
-        club: pulp.LpVariable(name=f"slack_unfair_matches_{club}", lowBound=0)
-        for club in clubs
-    }
+    slack_unfair_matches = {club: pulp.LpVariable(name=f"slack_unfair_matches_{club}", lowBound=0) for club in clubs}
 
     # Clubs must not be overbooked
     for club in clubs:
@@ -219,12 +229,15 @@ def solve_problem(data: dict):
     for club in clubs:
         # Need the +1, otherwise we end up with infeasibilities for clubs with e.g. 8 matches
         fair_number_of_bookings = club_match_slots[club] / 3 + 1
-        problem += pulp.lpSum(
-            venue_bookings[club][league][date][match_slot]
-            for league, match_slots in leagues_to_match_slots.items()
-            for date in data["dates"]
-            for match_slot in range(match_slots)
-        ) <= fair_number_of_bookings + slack_unfair_matches[club]
+        problem += (
+            pulp.lpSum(
+                venue_bookings[club][league][date][match_slot]
+                for league, match_slots in leagues_to_match_slots.items()
+                for date in data["dates"]
+                for match_slot in range(match_slots)
+            )
+            <= fair_number_of_bookings + slack_unfair_matches[club]
+        )
 
     # Objective function
     problem += pulp.lpSum(
@@ -305,3 +318,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Caveats:
+# Can't split up match days currently. This is probably doable, but is more work ofc.
+#   Hm, need to add a constraint to ensure I can't double-book a team
+# We allocate games through the season, and ensure that each club gets a fair number of home games, but we don't ensure that the home games are distributed through the season
+# It is not possible to get a perfectly fair number of home games: if you have 8 matches, you can't have exactly 1/3rd at home. Therefore, there is a bit of fuzziness.
