@@ -1,4 +1,5 @@
 from collections import defaultdict
+import csv
 import math
 import pulp
 
@@ -99,7 +100,12 @@ def get_match_days_for_league(teams: list[str]):
         ]
     }
     schedule = megadict[len(teams)]
-    return schedule
+
+    schedule_with_names = [
+        [{teams[idx] for idx in match} for match in day]
+        for day in schedule
+    ]
+    return schedule_with_names
 
 
 def get_match_slots_for_league_size(size: int):
@@ -215,7 +221,7 @@ def solve_problem(data: dict):
                     for league in data["leagues"]
                     for match_slot in range(leagues_to_match_slots[league])
                 )
-                <= data["club_venue_count"]
+                <= data["club_venue_count"][club]
             )
 
     # Match day logic
@@ -234,11 +240,11 @@ def solve_problem(data: dict):
         # For each match day, we must book all relevant venues
         for match_day in range(len(leagues_to_match_days[league])):
             for match_slot in range(leagues_to_match_slots[league]):
-                relevant_teams = [leagues_to_teams[league][team_idx] for team_idx in leagues_to_match_days[league][match_day][match_slot]]
+                relevant_teams = leagues_to_match_days[league][match_day][match_slot]
                 relevant_clubs = {data["teams_to_club"][team] for team in relevant_teams}
 
                 for date in data["dates"]:
-                    problem += match_days_vs_dates[league][match_day][date] <= sum(
+                    problem += match_days_vs_dates[league][match_day][date] <= pulp.lpSum(
                         home_games_vs_match_slots[league][date][match_slot][club] for club in relevant_clubs
                     )
 
@@ -268,16 +274,21 @@ def solve_problem(data: dict):
                         key = (league, date, match_slot)
                         assert key not in clubs_used_for_games
                         clubs_used_for_games[key] = club
+
+    # TODO: teams_vs_match_slots is currently mostly pointless, but maybe needs to be taken out
+    # Either way, the fixtures contains a superset of the games we want. Maybe some kind of filtering is needed?
     fixtures = sorted(
-        (league, date, clubs_used_for_games[(league, date, match_slot)], match_slot, team)
-        for league, inner_dict1 in teams_vs_match_slots.items()
-        for team, inner_dict2 in inner_dict1.items()
-        for date, inner_dict3 in inner_dict2.items()
-        for match_slot, lp_var in inner_dict3.items()
+        (league, date, match_day, clubs_used_for_games[(league, date, match_slot)], team)
+        for league, inner_dict1 in match_days_vs_dates.items()
+        for match_day, inner_dict2 in inner_dict1.items()
+        for date, lp_var in inner_dict2.items()
+        for match_slot in range(leagues_to_match_slots[league])
+        for team in leagues_to_match_days[league][match_day][match_slot]
         if lp_var.varValue > 0.5
     )
     print("clubs_used_for_games", clubs_used_for_games)
     print("fixtures", fixtures)
+    return fixtures
 
 
 def dict_var_to_dict_val(input_val: dict | pulp.LpVariable, filter_zero=False):
@@ -296,13 +307,18 @@ def dict_var_to_dict_val(input_val: dict | pulp.LpVariable, filter_zero=False):
         raise ValueError
 
 
+def write_outputs(fixtures: list[tuple]):
+    with open('long_fixtures.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["league", "date", "match_day", "Host club", "team"])
+        writer.writerows(fixtures)
+
+
 def main():
     data = load_data()
-    print(data)
-    solution = solve_problem(data)
-    # construct then solve problem
-    # write to outputs
-    pass
+    # print(data)
+    fixtures = solve_problem(data)
+    write_outputs(fixtures)
 
 
 if __name__ == "__main__":
