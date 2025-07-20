@@ -62,8 +62,7 @@ def load_data():
         "SBJ1": "J1",
         "BSJ2": "J1",
     }
-    # For development purposes, just do M1
-    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league in ["M1", "L1"]}
+    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league.startswith("M") or league.startswith("L")}
     team_clubs = {team: team[:2] for team in teams_to_league.keys()}
 
     club_venue_count = {
@@ -77,6 +76,7 @@ def load_data():
         "RA": 1,
         "SB": 1,
         "SP": 2,
+        "WE": 0,
     }
 
     start_date = "2022-10-16"
