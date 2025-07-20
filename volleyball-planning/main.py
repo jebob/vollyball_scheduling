@@ -189,13 +189,12 @@ def solve_problem(data: dict):
             )
 
     # Match day logic
-    # TODO: teams must never have two matches on the same date
     for league in data["leagues"]:
         # Each match must happen exactly once
         for match in range(len(leagues_to_matches[league])):
             problem += pulp.lpSum(matches_vs_dates[league][match][date] for date in data["dates"]) == 1
 
-        # For each match day, we must book a venue for each match, matching the teams in the match
+        # We must book a venue for each match, matching the teams in the match
         for match, (_, relevant_teams) in enumerate(leagues_to_matches[league]):
             relevant_clubs = {data["teams_to_club"][team] for team in relevant_teams}
 
@@ -203,6 +202,12 @@ def solve_problem(data: dict):
                 problem += matches_vs_dates[league][match][date] <= pulp.lpSum(
                     venue_bookings[club][league][date][match] for club in relevant_clubs
                 )
+
+        # We are only allowed to play one match per team per date
+        for team in leagues_to_teams[league]:
+            relevant_matches = {match for match, (_, teams_for_match) in enumerate(leagues_to_matches[league]) if team in teams_for_match}
+            for date in data["dates"]:
+                problem += pulp.lpSum(matches_vs_dates[league][match][date] for match in relevant_matches) <= 1
 
     club_match_slots = defaultdict(int)
     for league, matches in leagues_to_matches.items():
