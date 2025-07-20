@@ -63,7 +63,7 @@ def load_data():
         "BSJ2": "J1",
     }
     # For development purposes, just do M1
-    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league == "M1"}
+    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league in ["M1"]}
     team_clubs = {team: team[:2] for team in teams_to_league.keys()}
 
     club_venue_count = {
@@ -90,7 +90,7 @@ def load_data():
     }
 
 
-def get_match_days_for_league(teams: list[str]):
+def get_matches_for_league(teams: list[str]):
     # TODO: test behaviour for a number of teams that isn't a multiple of 3.
     megadict = {
         9: [
@@ -120,20 +120,18 @@ def get_match_days_for_league(teams: list[str]):
     schedule = megadict[len(teams)]
 
     schedule_with_names = [[{teams[idx] for idx in match} for match in day] for day in schedule]
-    return schedule_with_names
+    new_schedule = [(match_day_num, teams) for match_day_num, match_day in enumerate(schedule_with_names) for teams in match_day]
+    return new_schedule
 
 
-def get_match_slots_for_league_size(size: int):
-    return int(math.ceil(size / 3))
-
-
-def get_match_day_preferences(dates, match_days) -> list[list[float]]:
+def get_match_date_preferences(dates, matches: list[tuple[int, set[str]]]) -> list[list[float]]:
     n_dates = len(dates)
+    match_days = set(match_day for match_day, _ in matches)
     n_match_days = len(match_days)
     assert n_dates >= n_match_days
     all_preferences = []
-    for match_day in range(n_match_days):
-        fraction_through = match_day / (n_match_days - 1)  # 0-1 range
+    for match_day, _ in matches:
+        fraction_through = match_day / (n_match_days - 1)  # convert to a 0-1 range
         ideal_date_index = fraction_through * (n_dates - 1)
         match_day_preferences = [0.5 ** abs(date_index - ideal_date_index) for date_index in range(n_dates)]
         all_preferences.append(match_day_preferences)
@@ -151,21 +149,15 @@ def solve_problem(data: dict):
     for team, club in data["teams_to_club"].items():
         club_to_teams[club].append(team)
     clubs = sorted(club_to_teams.keys())
-    leagues_to_match_days = {league: get_match_days_for_league(teams_in_league) for league, teams_in_league in leagues_to_teams.items()}
-    league_match_days_to_preferred_dates = {
-        league: get_match_day_preferences(data["dates"], match_days) for league, match_days in leagues_to_match_days.items()
-    }
-    # Match slots: the nth game for a particular league on a particular match day.
-    leagues_to_match_slots = {
-        league: get_match_slots_for_league_size(len(teams_in_league)) for league, teams_in_league in leagues_to_teams.items()
+    leagues_to_matches = {league: get_matches_for_league(teams_in_league) for league, teams_in_league in leagues_to_teams.items()}
+    league_match_to_preferred_dates = {
+        league: get_match_date_preferences(data["dates"], matches) for league, matches in leagues_to_matches.items()
     }
     # This is assigning each leagues' match days to particular dates
-    match_days_vs_dates = {
+    matches_vs_dates = {
         league: {
-            match_day: {
-                date: pulp.LpVariable(name=f"match_days_vs_dates_{league}_{match_day}_{date}", cat="Binary") for date in data["dates"]
-            }
-            for match_day in range(len(leagues_to_match_days[league]))
+            match: {date: pulp.LpVariable(name=f"matches_vs_dates{league}_{match}_{date}", cat="Binary") for date in data["dates"]}
+            for match in range(len(leagues_to_matches[league]))
         }
         for league in data["leagues"]
     }
@@ -173,8 +165,8 @@ def solve_problem(data: dict):
         club: {
             league: {
                 date: {
-                    match_slot: pulp.LpVariable(name=f"venue_bookings_{club}_{date}_{match_slot}_{league}", cat="Binary")
-                    for match_slot in range(leagues_to_match_slots[league])
+                    match: pulp.LpVariable(name=f"venue_bookings_{club}_{date}_{match}_{league}", cat="Binary")
+                    for match in range(len(leagues_to_matches[league]))
                 }
                 for date in data["dates"]
             }
@@ -189,56 +181,45 @@ def solve_problem(data: dict):
         for date in data["dates"]:
             problem += (
                 pulp.lpSum(
-                    venue_bookings[club][league][date][match_slot]
+                    venue_bookings[club][league][date][match]
                     for league in data["leagues"]
-                    for match_slot in range(leagues_to_match_slots[league])
+                    for match in range(len(leagues_to_matches[league]))
                 )
                 <= data["club_venue_count"][club]
             )
 
     # Match day logic
+    # TODO: teams must never have two matches on the same date
     for league in data["leagues"]:
-        # Each match day must happen exactly once
-        for match_day in range(len(leagues_to_match_days[league])):
-            problem += pulp.lpSum(match_days_vs_dates[league][match_day][date] for date in data["dates"]) == 1
-
-        # For each league, no more than one match day must happen per date
-        for date in data["dates"]:
-            problem += (
-                pulp.lpSum(match_days_vs_dates[league][match_day][date] for match_day in range(len(leagues_to_match_days[league]))) <= 1
-            )
+        # Each match must happen exactly once
+        for match in range(len(leagues_to_matches[league])):
+            problem += pulp.lpSum(matches_vs_dates[league][match][date] for date in data["dates"]) == 1
 
         # For each match day, we must book a venue for each match, matching the teams in the match
-        for match_day in range(len(leagues_to_match_days[league])):
-            for match_slot in range(leagues_to_match_slots[league]):
-                if match_slot >= len(leagues_to_match_days[league][match_day]):
-                    # not all match slots are used on all days
-                    continue
-                relevant_teams = leagues_to_match_days[league][match_day][match_slot]
-                relevant_clubs = {data["teams_to_club"][team] for team in relevant_teams}
+        for match, (_, relevant_teams) in enumerate(leagues_to_matches[league]):
+            relevant_clubs = {data["teams_to_club"][team] for team in relevant_teams}
 
-                for date in data["dates"]:
-                    problem += match_days_vs_dates[league][match_day][date] <= pulp.lpSum(
-                        venue_bookings[club][league][date][match_slot] for club in relevant_clubs
-                    )
+            for date in data["dates"]:
+                problem += matches_vs_dates[league][match][date] <= pulp.lpSum(
+                    venue_bookings[club][league][date][match] for club in relevant_clubs
+                )
 
     club_match_slots = defaultdict(int)
-    for league, match_days in leagues_to_match_days.items():
-        for match_day in match_days:
-            for match in match_day:
-                for team in match:
-                    club = data["teams_to_club"][team]
-                    club_match_slots[club] += 1
+    for league, matches in leagues_to_matches.items():
+        for _, match in matches:
+            for team in match:
+                club = data["teams_to_club"][team]
+                club_match_slots[club] += 1
 
     for club in clubs:
         # Need the +1, otherwise we end up with infeasibilities for clubs with e.g. 8 matches
         fair_number_of_bookings = club_match_slots[club] / 3 + 1
         problem += (
             pulp.lpSum(
-                venue_bookings[club][league][date][match_slot]
-                for league, match_slots in leagues_to_match_slots.items()
+                venue_bookings[club][league][date][match]
+                for league, matches in leagues_to_matches.items()
+                for match in range(len(matches))
                 for date in data["dates"]
-                for match_slot in range(match_slots)
             )
             <= fair_number_of_bookings + slack_unfair_matches[club]
         )
@@ -246,9 +227,9 @@ def solve_problem(data: dict):
 
     # Objective function
     problem += pulp.lpSum(
-        -preference * match_days_vs_dates[league][match_day][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
-        for league, match_days_to_preferred_dates in league_match_days_to_preferred_dates.items()
-        for match_day, preferred_dates in enumerate(match_days_to_preferred_dates)
+        -preference * matches_vs_dates[league][match][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
+        for league, match_to_preferred_dates in league_match_to_preferred_dates.items()
+        for match, preferred_dates in enumerate(match_to_preferred_dates)
         for date, preference in zip(data["dates"], preferred_dates, strict=True)
     ) + pulp.lpSum(slack_unfair_matches[club] for club in clubs)
 
@@ -256,34 +237,33 @@ def solve_problem(data: dict):
     if (solve_status := pulp.LpStatus[problem.status]) != "Optimal":
         raise ValueError(f"solve status {solve_status}")
 
-    sovled_match_day_dates = [
-        (league, match_day, date)
-        for league, inner_dict1 in match_days_vs_dates.items()
-        for match_day, inner_dict2 in inner_dict1.items()
+    sovled_match_dates = [
+        (league, match, date)
+        for league, inner_dict1 in matches_vs_dates.items()
+        for match, inner_dict2 in inner_dict1.items()
         for date, lp_var in inner_dict2.items()
         if lp_var.varValue > 0.5
     ]
-    print("sovled_match_day_dates", sovled_match_day_dates)
+    print("sovled_match_dates", sovled_match_dates)
     # alt_venue_bookings = dict_var_to_dict_val(venue_bookings, filter_zero=True)
     # print(alt_venue_bookings)
     clubs_used_for_games = {}
     for league in data["leagues"]:
         for date in data["dates"]:
-            for match_slot in range(leagues_to_match_slots[league]):
+            for match in range(len(leagues_to_matches[league])):
                 for club in clubs:
-                    if venue_bookings[club][league][date][match_slot].varValue > 0.5:
+                    if venue_bookings[club][league][date][match].varValue > 0.5:
                         # match found
-                        key = (league, date, match_slot)
+                        key = (league, date, match)
                         # assert key not in clubs_used_for_games
                         clubs_used_for_games[key] = club
 
     fixtures = sorted(
-        (league, date, match_day, clubs_used_for_games[(league, date, match_slot)], team)
-        for league, inner_dict1 in match_days_vs_dates.items()
-        for match_day, inner_dict2 in inner_dict1.items()
+        (league, date, match, clubs_used_for_games[(league, date, match)], team)
+        for league, inner_dict1 in matches_vs_dates.items()
+        for match, inner_dict2 in inner_dict1.items()
         for date, lp_var in inner_dict2.items()
-        for match_slot in range(leagues_to_match_slots[league])
-        for team in leagues_to_match_days[league][match_day][match_slot]
+        for team in leagues_to_matches[league][match][1]
         if lp_var.varValue > 0.5
     )
     print("clubs_used_for_games", clubs_used_for_games)
@@ -310,7 +290,7 @@ def dict_var_to_dict_val(input_val: dict | pulp.LpVariable, filter_zero=False):
 def write_outputs(fixtures: list[tuple]):
     with open(OUTPUT_DIR / "long_fixtures.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["league", "date", "match_day", "Host club", "team"])
+        writer.writerow(["league", "date", "match_number", "Host club", "team"])
         writer.writerows(fixtures)
 
 
