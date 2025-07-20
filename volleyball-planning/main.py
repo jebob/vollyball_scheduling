@@ -283,7 +283,14 @@ def solve_problem(data: dict):
                         clubs_used_for_games[key] = club
 
     fixtures = sorted(
-        (league, date, match, clubs_used_for_games[(league, date, match)], team)
+        (
+            league,
+            date,
+            match,
+            clubs_used_for_games[(league, date, match)],
+            team,
+            int(clubs_used_for_games[(league, date, match)] == data["teams_to_club"][team]),
+        )
         for league, inner_dict1 in matches_vs_dates.items()
         for match, inner_dict2 in inner_dict1.items()
         for date, lp_var in inner_dict2.items()
@@ -314,7 +321,7 @@ def dict_var_to_dict_val(input_val: dict | pulp.LpVariable, filter_zero=False):
 def write_outputs(fixtures: list[tuple]):
     with open(OUTPUT_DIR / "long_fixtures.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["league", "date", "match_number", "Host club", "team"])
+        writer.writerow(["league", "date", "match_number", "Host club", "team", "is_home_match"])
         writer.writerows(fixtures)
 
 
