@@ -63,7 +63,7 @@ def load_data():
         "BSJ2": "J1",
     }
     # For development purposes, just do M1
-    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league in ["M1"]}
+    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league in ["M1", "L1"]}
     team_clubs = {team: team[:2] for team in teams_to_league.keys()}
 
     club_venue_count = {
@@ -81,7 +81,7 @@ def load_data():
 
     start_date = "2022-10-16"
     end_date = "2023-04-30"
-    dates = list(range(10, 20))
+    dates = list(range(10, 25))
     return {
         "teams_to_league": teams_to_league,
         "teams_to_club": team_clubs,
@@ -91,7 +91,6 @@ def load_data():
 
 
 def get_matches_for_league(teams: list[str]):
-    # TODO: test behaviour for a number of teams that isn't a multiple of 3.
     megadict = {
         9: [
             [{8, 0, 4}, {1, 5, 7}, {2, 3, 6}],
@@ -150,6 +149,10 @@ def solve_problem(data: dict):
         club_to_teams[club].append(team)
     clubs = sorted(club_to_teams.keys())
     leagues_to_matches = {league: get_matches_for_league(teams_in_league) for league, teams_in_league in leagues_to_teams.items()}
+    teams_to_matches = {
+        team: {match for match, (_, teams_for_match) in enumerate(leagues_to_matches[league]) if team in teams_for_match}
+        for team, league in data["teams_to_league"].items()
+    }
     league_match_to_preferred_dates = {
         league: get_match_date_preferences(data["dates"], matches) for league, matches in leagues_to_matches.items()
     }
@@ -174,7 +177,10 @@ def solve_problem(data: dict):
         }
         for club in clubs
     }
-    slack_unfair_matches = {club: pulp.LpVariable(name=f"slack_unfair_matches_{club}", lowBound=0) for club in clubs}
+    slack_unfair_club_home_matches = {club: pulp.LpVariable(name=f"slack_unfair_club_home_matches_{club}", lowBound=0) for club in clubs}
+    slack_unfair_team_home_matches = {
+        team: pulp.LpVariable(name=f"slack_unfair_team_home_matches_{team}", lowBound=0) for team in data["teams_to_league"].keys()
+    }
 
     # Clubs must not be overbooked
     for club in clubs:
@@ -205,20 +211,22 @@ def solve_problem(data: dict):
 
         # We are only allowed to play one match per team per date
         for team in leagues_to_teams[league]:
-            relevant_matches = {match for match, (_, teams_for_match) in enumerate(leagues_to_matches[league]) if team in teams_for_match}
+            relevant_matches = teams_to_matches[team]
             for date in data["dates"]:
                 problem += pulp.lpSum(matches_vs_dates[league][match][date] for match in relevant_matches) <= 1
 
-    club_match_slots = defaultdict(int)
+    club_match_count = defaultdict(int)
+    team_match_count = defaultdict(int)
     for league, matches in leagues_to_matches.items():
         for _, match in matches:
             for team in match:
                 club = data["teams_to_club"][team]
-                club_match_slots[club] += 1
+                club_match_count[club] += 1
+                team_match_count[team] += 1
 
     for club in clubs:
         # Need the +1, otherwise we end up with infeasibilities for clubs with e.g. 8 matches
-        fair_number_of_bookings = club_match_slots[club] / 3 + 1
+        fair_number_of_bookings = club_match_count[club] / 3 + 1
         problem += (
             pulp.lpSum(
                 venue_bookings[club][league][date][match]
@@ -226,17 +234,28 @@ def solve_problem(data: dict):
                 for match in range(len(matches))
                 for date in data["dates"]
             )
-            <= fair_number_of_bookings + slack_unfair_matches[club]
+            <= fair_number_of_bookings + slack_unfair_club_home_matches[club]
         )
-        # TODO: ensure that each _team_ has a fair number of home matches
+    for team, club in data["teams_to_club"].items():
+        # Need the +1, otherwise we end up with infeasibilities for clubs with e.g. 8 matches
+        league = data["teams_to_league"][team]
+        fair_number_of_bookings = team_match_count[team] / 3 + 1
+        problem += (
+            pulp.lpSum(venue_bookings[club][league][date][match] for match in teams_to_matches[team] for date in data["dates"])
+            <= fair_number_of_bookings + slack_unfair_team_home_matches[team]
+        )
 
     # Objective function
-    problem += pulp.lpSum(
-        -preference * matches_vs_dates[league][match][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
-        for league, match_to_preferred_dates in league_match_to_preferred_dates.items()
-        for match, preferred_dates in enumerate(match_to_preferred_dates)
-        for date, preference in zip(data["dates"], preferred_dates, strict=True)
-    ) + pulp.lpSum(slack_unfair_matches[club] for club in clubs)
+    problem += (
+        pulp.lpSum(
+            -preference * matches_vs_dates[league][match][date]  # Preference is 0-1, with 1 the most preferred, therefore flip the sign
+            for league, match_to_preferred_dates in league_match_to_preferred_dates.items()
+            for match, preferred_dates in enumerate(match_to_preferred_dates)
+            for date, preference in zip(data["dates"], preferred_dates, strict=True)
+        )
+        + 1000 * pulp.lpSum(slack_unfair_club_home_matches[club] for club in clubs)
+        + 0.1 * pulp.lpSum(slack_unfair_team_home_matches[team] for team in data["teams_to_club"].keys())
+    )
 
     problem.solve()
     if (solve_status := pulp.LpStatus[problem.status]) != "Optimal":
