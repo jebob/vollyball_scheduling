@@ -2,7 +2,8 @@ from collections import defaultdict
 import csv
 import pulp
 from pathlib import Path
-from datetime import date as Date, timedelta
+from datetime import date as timedelta, datetime
+from itertools import permutations
 
 TEAM_SLOTS = "abcdefghijklmnop"
 OUTPUT_DIR = Path(__file__).parent.parent / "outputs"
@@ -65,6 +66,9 @@ def load_data():
     teams_to_league = {
         team: league for (team, league) in teams_to_league.items() if league.startswith("mens") or league.startswith("womens")
     }
+    leagues_to_teams = defaultdict(list)
+    for team, league in teams_to_league.items():
+        leagues_to_teams[league].append(team)
     team_clubs = {team: team[:2] for team in teams_to_league.keys()}
 
     club_venue_count = {
@@ -81,81 +85,81 @@ def load_data():
         "WE": 0,
     }
 
-    # start_date = "2024-10-13"
-    start_date = "2024-10-06"
-    end_date = "2025-04-25"
+    # start_date = "13/10/2024"
+    start_date = "06/10/2024"
+    end_date = "25/04/2025"
     dates = generate_dates(
         start_date,
         end_date,
         exclude_dates={
-            "2024-12-22",
-            "2024-12-29",
-            "2025-03-30",
-            "2025-04-20",
+            "22/12/2024",
+            "29/12/2024",
+            "30/03/2025",
+            "20/04/2025",
         },
     )
 
     team_unavailabilities = [
-        ("BSM1", "2024-10-13"),
-        ("BSM1", "2024-10-20"),
-        ("BSM1", "2024-11-10"),
-        ("BSM1", "2024-12-08"),
-        ("FBJ1", "2024-12-08"),
-        ("BSL1", "2024-10-13"),
-        ("BSL1", "2024-12-08"),
-        ("MHL1", "2025-03-16"),
-        ("OUL1", "2024-12-01"),
-        ("OUL1", "2024-12-08"),
-        ("OUL1", "2024-12-15"),
-        ("OUL1", "2025-01-05"),
-        ("OUL1", "2025-03-09"),
-        ("OUL1", "2025-03-16"),
-        ("OUL1", "2025-03-23"),
-        ("OUL1", "2025-03-30"),
-        ("OUL1", "2025-04-13"),
-        ("FBL1", "2024-10-06"),
-        ("FBL1", "2024-12-15"),
-        ("SBL1", "2024-11-10"),
-        ("SBL1", "2024-11-24"),
-        ("SBL1", "2024-12-08"),
-        ("SBL1", "2024-12-15"),
-        ("SBL1", "2025-01-12"),
-        ("SBL1", "2025-02-02"),
-        ("SBL1", "2025-02-16"),
-        ("SBL1", "2025-04-13"),
-        ("SBL1", "2025-04-20"),
-        ("SBL1", "2025-04-27"),
-        ("BSM2", "2024-11-24"),
-        ("BSM2", "2025-04-13"),
-        ("OUM1", "2024-10-06"),
-        ("OUM1", "2024-12-01"),
-        ("OUM1", "2024-12-08"),
-        ("OUM1", "2024-12-15"),
-        ("OUM1", "2025-01-05"),
-        ("OUM1", "2025-03-09"),
-        ("OUM1", "2025-03-16"),
-        ("OUM1", "2025-03-23"),
-        ("OUM1", "2025-03-30"),
-        ("OUM1", "2025-04-13"),
-        ("WEM1", "2024-10-20"),
-        ("WEM1", "2024-11-10"),
-        ("WEM1", "2024-11-17"),
-        ("WEM1", "2024-12-08"),
-        ("WEM1", "2025-02-02"),
-        ("WEM1", "2025-02-09"),
-        ("WEX1", "2024-10-20"),
-        ("WEX1", "2024-11-10"),
-        ("WEX1", "2024-11-17"),
-        ("WEX1", "2024-12-08"),
-        ("WEX1", "2025-02-02"),
-        ("WEX1", "2025-02-09"),
-        ("MHX1", "2025-03-16"),
-        ("MHX2", "2025-03-16"),
+        ("BSM1", "13/10/2024"),
+        ("BSM1", "20/10/2024"),
+        ("BSM1", "10/11/2024"),
+        ("BSM1", "08/12/2024"),
+        ("FBJ1", "08/12/2024"),
+        ("BSL1", "13/10/2024"),
+        ("BSL1", "08/12/2024"),
+        ("MHL1", "16/03/2025"),
+        ("OUL1", "01/12/2024"),
+        ("OUL1", "08/12/2024"),
+        ("OUL1", "15/12/2024"),
+        ("OUL1", "05/01/2025"),
+        ("OUL1", "09/03/2025"),
+        ("OUL1", "16/03/2025"),
+        ("OUL1", "23/03/2025"),
+        ("OUL1", "30/03/2025"),
+        ("OUL1", "13/04/2025"),
+        ("FBL1", "06/10/2024"),
+        ("FBL1", "15/12/2024"),
+        ("SBL1", "10/11/2024"),
+        ("SBL1", "24/11/2024"),
+        ("SBL1", "08/12/2024"),
+        ("SBL1", "15/12/2024"),
+        ("SBL1", "12/01/2025"),
+        ("SBL1", "02/02/2025"),
+        ("SBL1", "16/02/2025"),
+        ("SBL1", "13/04/2025"),
+        ("SBL1", "20/04/2025"),
+        ("SBL1", "27/04/2025"),
+        ("BSM2", "24/11/2024"),
+        ("BSM2", "13/04/2025"),
+        ("OUM1", "06/10/2024"),
+        ("OUM1", "01/12/2024"),
+        ("OUM1", "08/12/2024"),
+        ("OUM1", "15/12/2024"),
+        ("OUM1", "05/01/2025"),
+        ("OUM1", "09/03/2025"),
+        ("OUM1", "16/03/2025"),
+        ("OUM1", "23/03/2025"),
+        ("OUM1", "30/03/2025"),
+        ("OUM1", "13/04/2025"),
+        ("WEM1", "20/10/2024"),
+        ("WEM1", "10/11/2024"),
+        ("WEM1", "17/11/2024"),
+        ("WEM1", "08/12/2024"),
+        ("WEM1", "02/02/2025"),
+        ("WEM1", "09/02/2025"),
+        ("WEX1", "20/10/2024"),
+        ("WEX1", "10/11/2024"),
+        ("WEX1", "17/11/2024"),
+        ("WEX1", "08/12/2024"),
+        ("WEX1", "02/02/2025"),
+        ("WEX1", "09/02/2025"),
+        ("MHX1", "16/03/2025"),
+        ("MHX2", "16/03/2025"),
     ]
-    # team_unavailabilities = [(team, date_) for team, date_ in team_unavailabilities if team in team_clubs]
     team_unavailabilities = [(team, date_) for team, date_ in team_unavailabilities if team in team_clubs and date_ in dates]
 
     return {
+        "leagues_to_teams": leagues_to_teams,
         "teams_to_league": teams_to_league,
         "teams_to_club": team_clubs,
         "team_unavailabilities": team_unavailabilities,
@@ -165,9 +169,9 @@ def load_data():
 
 
 def generate_dates(start_date, end_date, exclude_dates):
-    start_date = Date.fromisoformat(start_date)
-    end_date = Date.fromisoformat(end_date)
-    exclude_dates = {Date.fromisoformat(d) for d in exclude_dates}
+    start_date = datetime.strptime(start_date, "%d/%m/%Y").date()
+    end_date = datetime.strptime(end_date, "%d/%m/%Y").date()
+    exclude_dates = {datetime.strptime(d, "%d/%m/%Y").date() for d in exclude_dates}
     now = start_date
     dates = [start_date]
 
@@ -178,7 +182,7 @@ def generate_dates(start_date, end_date, exclude_dates):
                 dates.append(now)
         else:
             break
-    return [d.isoformat() for d in dates]
+    return [d.strftime("%d/%m/%Y") for d in dates]
 
 
 def get_matches_for_league(teams: list[str]):
@@ -218,7 +222,6 @@ def get_match_date_preferences(dates, matches: list[tuple[int, set[str]]]) -> li
     n_dates = len(dates)
     match_days = set(match_day for match_day, _ in matches)
     n_match_days = len(match_days)
-    assert n_dates >= n_match_days
     all_preferences = []
     for match_day, _ in matches:
         fraction_through = match_day / (n_match_days - 1)  # convert to a 0-1 range
@@ -247,6 +250,9 @@ def solve_problem(data: dict):
     league_match_to_preferred_dates = {
         league: get_match_date_preferences(data["dates"], matches) for league, matches in leagues_to_matches.items()
     }
+
+    check_availabilities(data, leagues_to_matches)
+
     # This is assigning each leagues' match days to particular dates
     matches_vs_dates = {
         league: {
@@ -336,6 +342,12 @@ def solve_problem(data: dict):
             <= fair_number_of_bookings + slack_unfair_team_home_matches[team]
         )
 
+    for team, date in data["team_unavailabilities"]:
+        relevant_matches = teams_to_matches[team]
+        league = data["teams_to_league"][team]
+        for match in relevant_matches:
+            problem += matches_vs_dates[league][match][date] == 0
+
     # Objective function
     problem += (
         pulp.lpSum(
@@ -407,6 +419,27 @@ def dict_var_to_dict_val(input_val: dict | pulp.LpVariable, filter_zero=False):
             return result
     else:
         raise ValueError
+
+
+def check_availabilities(data: dict, leagues_to_matches: dict):
+    # Note, this doesn't guarantee availability is sufficient, but it should catch the worst cases.
+    total_unavailaiblities = defaultdict(int)
+    for team, _ in data["team_unavailabilities"]:
+        total_unavailaiblities[team] += 1
+    for league, matches in leagues_to_matches.items():
+        num_match_days = max(match_day_num for (match_day_num, teams) in matches) + 1
+        max_unavailabilites = len(data["dates"]) - num_match_days
+        if max_unavailabilites < 0:
+            raise ValueError(f"Too few dates ({len(data['dates'])}) for the number of match dates ({num_match_days})")
+        bad_teams = [
+            (team, total_unavailaiblities[team])
+            for team in data["leagues_to_teams"][league]
+            if total_unavailaiblities[team] > max_unavailabilites
+        ]
+        if bad_teams:
+            raise ValueError(
+                f"The following teams have too many unavailable dates, given that we can only have {max_unavailabilites} days off: {bad_teams}"
+            )
 
 
 def write_outputs(fixtures: list[tuple]):
