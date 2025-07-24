@@ -1,8 +1,8 @@
 from collections import defaultdict
 import csv
-import math
 import pulp
 from pathlib import Path
+from datetime import date as Date, timedelta
 
 TEAM_SLOTS = "abcdefghijklmnop"
 OUTPUT_DIR = Path(__file__).parent.parent / "outputs"
@@ -12,57 +12,59 @@ SLACK = 1000
 
 def load_data():
     teams_to_league = {
-        "OXM1": "M1",
-        "SPM1": "M1",
-        "BSM1": "M1",
-        "MHM1": "M1",
-        "OXM2": "M1",
-        "FBM1": "M1",
-        "RAM1": "M1",
-        "SPM2": "M1",
-        "OXM3": "M1",
-        "RAM2": "M2",
-        "RAM3": "M2",
-        "WEM1": "M2",
-        "NBM1": "M2",
-        "OUM1": "M2",
-        "FBM2": "M2",
-        "MHM2": "M2",
-        "NBM2": "M2",
-        "BSM2": "M2",
-        "OXL1": "L1",
-        "FBL1": "L1",
-        "BSL1": "L1",
-        "MHL1": "L1",
-        "SPL1": "L1",
-        "NBL1": "L1",
-        "OXL2": "L1",
-        "SBL1": "L1",
-        "OUL1": "L1",
-        "RAL1": "L1",
-        "BSX1": "X1",
-        "FBX1": "X1",
-        "MHX1": "X1",
-        "SPX1": "X1",
-        "MHX2": "X1",
-        "RAX1": "X1",
-        "OXX1": "X1",
-        "MVX1": "X2",
-        "SPX2": "X2",
-        "WEX1": "X2",
-        "RAX2": "X2",
-        "NBX1": "X2",
-        "SPX3": "X2",
-        "RAJ1": "J1",
-        "MVJ1": "J1",
-        "BSJ1": "J1",
-        "NBJ1": "J1",
-        "RAJ2": "J1",
-        "FBJ1": "J1",
-        "SBJ1": "J1",
-        "BSJ2": "J1",
+        "BSJ1": "juniors",
+        "BSJ2": "juniors",
+        "BSL1": "womens1",
+        "BSM1": "mens1",
+        "BSM2": "mens2",
+        "BSX1": "mixed1",
+        "FBJ1": "juniors",
+        "FBL1": "womens1",
+        "FBM1": "mens1",
+        "FBM2": "mens2",
+        "FBX1": "mixed1",
+        "MHL1": "womens1",
+        "MHM1": "mens1",
+        "MHM2": "mens2",
+        "MHX1": "mixed1",
+        "MHX2": "mixed1",
+        "MVJ1": "juniors",
+        "MVX1": "mixed2",
+        "NBJ1": "juniors",
+        "NBL1": "womens1",
+        "NBM1": "mens2",
+        "NBM2": "mens2",
+        "NBX1": "mixed2",
+        "OUL1": "womens1",
+        "OUM1": "mens2",
+        "OXL1": "womens1",
+        "OXL2": "womens1",
+        "OXM1": "mens1",
+        "OXM2": "mens1",
+        "OXM3": "mens1",
+        "OXX1": "mixed1",
+        "RAJ1": "juniors",
+        "RAJ2": "juniors",
+        "RAL1": "womens1",
+        "RAM1": "mens1",
+        "RAM2": "mens2",
+        "RAM3": "mens2",
+        "RAX1": "mixed1",
+        "RAX2": "mixed2",
+        "SBJ1": "juniors",
+        "SBL1": "womens1",
+        "SPL1": "womens1",
+        "SPM1": "mens1",
+        "SPM2": "mens1",
+        "SPX1": "mixed1",
+        "SPX2": "mixed2",
+        "SPX3": "mixed2",
+        "WEM1": "mens2",
+        "WEX1": "mixed2",
     }
-    teams_to_league = {team: league for (team, league) in teams_to_league.items() if league.startswith("M") or league.startswith("L")}
+    teams_to_league = {
+        team: league for (team, league) in teams_to_league.items() if league.startswith("mens") or league.startswith("womens")
+    }
     team_clubs = {team: team[:2] for team in teams_to_league.keys()}
 
     club_venue_count = {
@@ -79,15 +81,104 @@ def load_data():
         "WE": 0,
     }
 
-    start_date = "2022-10-16"
-    end_date = "2023-04-30"
-    dates = list(range(10, 25))
+    # start_date = "2024-10-13"
+    start_date = "2024-10-06"
+    end_date = "2025-04-25"
+    dates = generate_dates(
+        start_date,
+        end_date,
+        exclude_dates={
+            "2024-12-22",
+            "2024-12-29",
+            "2025-03-30",
+            "2025-04-20",
+        },
+    )
+
+    team_unavailabilities = [
+        ("BSM1", "2024-10-13"),
+        ("BSM1", "2024-10-20"),
+        ("BSM1", "2024-11-10"),
+        ("BSM1", "2024-12-08"),
+        ("FBJ1", "2024-12-08"),
+        ("BSL1", "2024-10-13"),
+        ("BSL1", "2024-12-08"),
+        ("MHL1", "2025-03-16"),
+        ("OUL1", "2024-12-01"),
+        ("OUL1", "2024-12-08"),
+        ("OUL1", "2024-12-15"),
+        ("OUL1", "2025-01-05"),
+        ("OUL1", "2025-03-09"),
+        ("OUL1", "2025-03-16"),
+        ("OUL1", "2025-03-23"),
+        ("OUL1", "2025-03-30"),
+        ("OUL1", "2025-04-13"),
+        ("FBL1", "2024-10-06"),
+        ("FBL1", "2024-12-15"),
+        ("SBL1", "2024-11-10"),
+        ("SBL1", "2024-11-24"),
+        ("SBL1", "2024-12-08"),
+        ("SBL1", "2024-12-15"),
+        ("SBL1", "2025-01-12"),
+        ("SBL1", "2025-02-02"),
+        ("SBL1", "2025-02-16"),
+        ("SBL1", "2025-04-13"),
+        ("SBL1", "2025-04-20"),
+        ("SBL1", "2025-04-27"),
+        ("BSM2", "2024-11-24"),
+        ("BSM2", "2025-04-13"),
+        ("OUM1", "2024-10-06"),
+        ("OUM1", "2024-12-01"),
+        ("OUM1", "2024-12-08"),
+        ("OUM1", "2024-12-15"),
+        ("OUM1", "2025-01-05"),
+        ("OUM1", "2025-03-09"),
+        ("OUM1", "2025-03-16"),
+        ("OUM1", "2025-03-23"),
+        ("OUM1", "2025-03-30"),
+        ("OUM1", "2025-04-13"),
+        ("WEM1", "2024-10-20"),
+        ("WEM1", "2024-11-10"),
+        ("WEM1", "2024-11-17"),
+        ("WEM1", "2024-12-08"),
+        ("WEM1", "2025-02-02"),
+        ("WEM1", "2025-02-09"),
+        ("WEX1", "2024-10-20"),
+        ("WEX1", "2024-11-10"),
+        ("WEX1", "2024-11-17"),
+        ("WEX1", "2024-12-08"),
+        ("WEX1", "2025-02-02"),
+        ("WEX1", "2025-02-09"),
+        ("MHX1", "2025-03-16"),
+        ("MHX2", "2025-03-16"),
+    ]
+    # team_unavailabilities = [(team, date_) for team, date_ in team_unavailabilities if team in team_clubs]
+    team_unavailabilities = [(team, date_) for team, date_ in team_unavailabilities if team in team_clubs and date_ in dates]
+
     return {
         "teams_to_league": teams_to_league,
         "teams_to_club": team_clubs,
+        "team_unavailabilities": team_unavailabilities,
         "dates": dates,
         "club_venue_count": club_venue_count,
     }
+
+
+def generate_dates(start_date, end_date, exclude_dates):
+    start_date = Date.fromisoformat(start_date)
+    end_date = Date.fromisoformat(end_date)
+    exclude_dates = {Date.fromisoformat(d) for d in exclude_dates}
+    now = start_date
+    dates = [start_date]
+
+    while True:
+        now = now + timedelta(days=14)
+        if now <= end_date:
+            if now not in exclude_dates:
+                dates.append(now)
+        else:
+            break
+    return [d.isoformat() for d in dates]
 
 
 def get_matches_for_league(teams: list[str]):
