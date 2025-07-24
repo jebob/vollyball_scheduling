@@ -2,7 +2,7 @@ from collections import defaultdict
 import csv
 import pulp
 from pathlib import Path
-from datetime import date as timedelta, datetime
+from datetime import timedelta, datetime
 from itertools import permutations
 
 TEAM_SLOTS = "abcdefghijklmnop"
@@ -108,9 +108,10 @@ def load_data():
         ("BSL1", "13/10/2024"),
         ("BSL1", "08/12/2024"),
         ("MHL1", "16/03/2025"),
-        ("OUL1", "01/12/2024"),
-        ("OUL1", "08/12/2024"),
-        ("OUL1", "15/12/2024"),
+        # To make the problem feasible, we enable these dates
+        # ("OUL1", "01/12/2024"),
+        # ("OUL1", "08/12/2024"),
+        # ("OUL1", "15/12/2024"),
         ("OUL1", "05/01/2025"),
         ("OUL1", "09/03/2025"),
         ("OUL1", "16/03/2025"),
@@ -438,7 +439,7 @@ def check_availabilities(data: dict, leagues_to_matches: dict):
         ]
         if bad_teams:
             raise ValueError(
-                f"The following teams have too many unavailable dates, given that we can only have {max_unavailabilites} days off: {bad_teams}"
+                f"The following teams have too many relevant unavailable dates, given that we have {len(data['dates'])} dates and {num_match_days} matches, we can only have {max_unavailabilites} days off: {bad_teams}"
             )
 
 
