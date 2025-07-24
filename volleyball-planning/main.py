@@ -159,11 +159,31 @@ def load_data():
     ]
     team_unavailabilities = [(team, date_) for team, date_ in team_unavailabilities if team in team_clubs and date_ in dates]
 
+    venue_unavailabilities = [
+        ("BS", "11/12/2022"),
+        ("FB", "18/12/2022"),
+        ("MV", "15/01/2023"),
+        ("MV", "22/01/2023"),
+        ("MV", "29/01/2023"),
+        ("MV", "05/02/2023"),
+        ("MV", "12/02/2023"),
+        ("MV", "19/02/2023"),
+        ("MV", "26/02/2023"),
+        ("MV", "05/03/2023"),
+        ("MV", "12/03/2023"),
+        ("MV", "26/03/2023"),
+        ("MV", "16/04/2023"),
+        ("MV", "23/04/2023"),
+        ("MV", "30/04/2023"),
+    ]
+    venue_unavailabilities = [(club, date_) for club, date_ in venue_unavailabilities if date_ in dates]
+
     return {
         "leagues_to_teams": leagues_to_teams,
         "teams_to_league": teams_to_league,
         "teams_to_club": team_clubs,
         "team_unavailabilities": team_unavailabilities,
+        "venue_unavailabilities": venue_unavailabilities,
         "dates": dates,
         "club_venue_count": club_venue_count,
     }
@@ -348,6 +368,12 @@ def solve_problem(data: dict):
         league = data["teams_to_league"][team]
         for match in relevant_matches:
             problem += matches_vs_dates[league][match][date] == 0
+
+    for club, date in data["venue_unavailabilities"]:
+        relevant_matches = teams_to_matches[team]
+        for league, matches in leagues_to_matches.items():
+            for match in range(len(matches)):
+                problem += venue_bookings[club][league][date][match] == 0
 
     # Objective function
     problem += (
