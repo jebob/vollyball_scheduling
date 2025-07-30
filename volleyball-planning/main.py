@@ -3,9 +3,8 @@ import csv
 import pulp
 from pathlib import Path
 from datetime import timedelta, datetime
-from itertools import permutations
 
-TEAM_SLOTS = "abcdefghijklmnop"
+ALPHABET = "abcdefghijklmnop"
 OUTPUT_DIR = Path(__file__).parent.parent / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
 SLACK = 1000
@@ -467,12 +466,12 @@ def check_availabilities(data: dict, leagues_to_matches: dict):
             )
 
 
-def write_outputs(fixtures: list[tuple]):
+def write_outputs(data, fixtures: list[tuple]):
     # Sort so that home teams go first
     for fixture in fixtures:
         fixture[4] = sorted(fixture[4], key=lambda team_name: team_name[:2] != fixture[3])
 
-    long_format = [
+    long_single_format = [
         (
             match_fixture[0],
             match_fixture[1],
@@ -484,18 +483,97 @@ def write_outputs(fixtures: list[tuple]):
         for match_fixture in fixtures
         for team in match_fixture[-1]
     ]
-    long_format = sorted(long_format, key=lambda row: (row[0], datetime.strptime(row[1], "%d/%m/%Y"), row[2]))
+    long_single_format = sorted(long_single_format, key=lambda row: (row[0], datetime.strptime(row[1], "%d/%m/%Y"), row[2]))
     with open(OUTPUT_DIR / "long_fixtures.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["league", "date", "match_number", "Host club", "team", "is_home_match"])
-        writer.writerows(long_format)
+        writer.writerows(long_single_format)
+
+    date_to_date_number = {date: i + 1 for i, date in enumerate(data["dates"])}
+    team_to_team_letter = {team: ALPHABET[team_idx] for teams in data["leagues_to_teams"].values() for team_idx, team in enumerate(teams)}
+
+    # Restructure fixtures so that we can produce lomo output
+    structured_games = {league: {date: [] for date in data["dates"]} for league in data["leagues_to_teams"].keys()}
+    for league, date, match_number, host_club, teams in fixtures:
+        teams = sorted(teams, key=lambda team_name: team_name[:2] != host_club)
+        games = [
+            # print the away (or away-ish) teams first
+            tuple(sorted([team_to_team_letter[teams[1]], team_to_team_letter[teams[2]]])),
+            tuple(sorted([team_to_team_letter[teams[0]], team_to_team_letter[teams[2]]])),
+            tuple(sorted([team_to_team_letter[teams[0]], team_to_team_letter[teams[1]]])),
+        ]
+        structured_games[league][date].extend(games)
+
+    # Send friendlies to the last on their triangular
+    possible_friendlies = {
+        9: [],
+        10: [("e", "f"), ("e", "g"), ("f", "g")],
+    }
+    found_friendlies = {}
+    for league, league_dict in structured_games.items():
+        num_teams = len(data["leagues_to_teams"][league])
+        remaining_friendlies = set(possible_friendlies[num_teams])
+        found_friendlies[league] = []
+        for date in reversed(data["dates"]):
+            date_list = league_dict[date]
+            for idx in range(len(date_list)):
+                teams_to_play = date_list[idx]
+                if teams_to_play in remaining_friendlies:
+                    # found a friendly!
+                    for offset in [2, 1]:
+                        try:
+                            swap_candidate = date_list[idx + offset]
+                        except IndexError:
+                            continue
+                        if teams_to_play[0] in swap_candidate or teams_to_play[1] in swap_candidate:
+                            # swap_candidate is part of the same triangular, so we can move the friendly to the back of the triangular
+                            date_list[idx], date_list[idx + offset] = date_list[idx + offset], date_list[idx]
+                            break
+
+                    # cleanup
+                    remaining_friendlies.remove(teams_to_play)
+                    found_friendlies[league].append((date, teams_to_play))
+        assert not remaining_friendlies
+
+    # add in "free" games
+    for league, league_dict in structured_games.items():
+        all_teams = {team_to_team_letter[team] for team in data["leagues_to_teams"][league]}
+        for date, date_list in league_dict.items():
+            pass
+            all_present_teams = set(team for match in date_list for team in match)
+            missing_teams = sorted(all_teams.difference(all_present_teams))
+            date_list.extend((team, "free") for team in missing_teams)
+
+    # actually write out the triangular:
+    for league, league_dict in structured_games.items():
+        with open(OUTPUT_DIR / f"triangulars_{league}.csv", "w") as triangular_file:
+            for date in data["dates"]:
+                date_num = date_to_date_number[date]
+                for team0, team1 in league_dict[date]:
+                    triangular_file.write(f"{date_num},{team0},{team1}\n")
+
+    # write out other outputs
+    date_output = sorted((date_num, date) for date, date_num in date_to_date_number.items())
+    with open(OUTPUT_DIR / "date_numbers.csv", "w") as date_file:
+        for date_num, date in date_output:
+            date_file.write(f"{date_num},{date}\n")
+    for league, teams in data["leagues_to_teams"].items():
+        team_letter_output = sorted((team_to_team_letter[team], team) for team in teams)
+        with open(OUTPUT_DIR / f"teams_{league}.csv", "w") as date_file:
+            for team_letter, team in team_letter_output:
+                date_file.write(f"{team_letter},{team}\n")
+    with open(OUTPUT_DIR / "friendlies.csv", "w") as friendlies_file:
+        for league, league_list in found_friendlies.items():
+            for date, (team0, team1) in league_list:
+                # TODO: is this the right format, or is date, team_name, team_name better?
+                friendlies_file.write(f"{league}, {date_to_date_number[date]}, {team0}, {team1}\n")
 
 
 def main():
     data = load_data()
     # print(data)
     fixtures = solve_problem(data)
-    write_outputs(fixtures)
+    write_outputs(data, fixtures)
 
 
 if __name__ == "__main__":
