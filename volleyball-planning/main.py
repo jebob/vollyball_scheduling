@@ -413,18 +413,16 @@ def solve_problem(data: dict):
                         clubs_used_for_games[key] = club
 
     fixtures = sorted(
-        (
+        [
             league,
             date,
             match,
             clubs_used_for_games[(league, date, match)],
-            team,
-            int(clubs_used_for_games[(league, date, match)] == data["teams_to_club"][team]),
-        )
+            leagues_to_matches[league][match][1],
+        ]
         for league, inner_dict1 in matches_vs_dates.items()
         for match, inner_dict2 in inner_dict1.items()
         for date, lp_var in inner_dict2.items()
-        for team in leagues_to_matches[league][match][1]
         if lp_var.varValue > 0.5
     )
     print("clubs_used_for_games", clubs_used_for_games)
@@ -470,10 +468,27 @@ def check_availabilities(data: dict, leagues_to_matches: dict):
 
 
 def write_outputs(fixtures: list[tuple]):
+    # Sort so that home teams go first
+    for fixture in fixtures:
+        fixture[4] = sorted(fixture[4], key=lambda team_name: team_name[:2] != fixture[3])
+
+    long_format = [
+        (
+            match_fixture[0],
+            match_fixture[1],
+            match_fixture[2],
+            match_fixture[3],
+            team,
+            int(team[:2] == match_fixture[3]),
+        )
+        for match_fixture in fixtures
+        for team in match_fixture[-1]
+    ]
+    long_format = sorted(long_format, key=lambda row: (row[0], datetime.strptime(row[1], "%d/%m/%Y"), row[2]))
     with open(OUTPUT_DIR / "long_fixtures.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["league", "date", "match_number", "Host club", "team", "is_home_match"])
-        writer.writerows(fixtures)
+        writer.writerows(long_format)
 
 
 def main():
