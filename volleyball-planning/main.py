@@ -498,9 +498,9 @@ def write_outputs(data, fixtures: list[tuple]):
         teams = sorted(teams, key=lambda team_name: team_name[:2] != host_club)
         games = [
             # print the away (or away-ish) teams first
-            tuple(sorted([team_to_team_letter[teams[1]], team_to_team_letter[teams[2]]])),
-            tuple(sorted([team_to_team_letter[teams[0]], team_to_team_letter[teams[2]]])),
-            tuple(sorted([team_to_team_letter[teams[0]], team_to_team_letter[teams[1]]])),
+            sort_and_format_pair(teams[1], teams[2], host_club, team_to_team_letter),
+            sort_and_format_pair(teams[0], teams[2], host_club, team_to_team_letter),
+            sort_and_format_pair(teams[0], teams[1], host_club, team_to_team_letter),
         ]
         structured_games[league][date].extend(games)
 
@@ -567,6 +567,15 @@ def write_outputs(data, fixtures: list[tuple]):
             for date, (team0, team1) in league_list:
                 # TODO: is this the right format, or is date, team_name, team_name better?
                 friendlies_file.write(f"{league}, {date_to_date_number[date]}, {team0}, {team1}\n")
+
+
+def sort_and_format_pair(team0, team1, host_club, team_to_team_letter):
+    pair = sorted(
+        [team0, team1],
+        key=lambda team_name: (team_name[:2] != host_club, team_name),
+    )
+
+    return tuple(team_to_team_letter[team] for team in pair)
 
 
 def main():
