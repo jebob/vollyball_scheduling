@@ -517,6 +517,7 @@ def write_outputs(data, fixtures: list[tuple]):
         remaining_friendlies = set(possible_friendlies[num_teams])
         found_friendlies[league] = []
         for date in reversed(data["dates"]):
+            # Try to schedule friendlies as late as possible in the season
             date_list = league_dict[date]
             for idx in range(len(date_list)):
                 teams_to_play = date_list[idx]
@@ -567,8 +568,9 @@ def write_outputs(data, fixtures: list[tuple]):
     with open(OUTPUT_DIR / "friendlies.csv", "w") as friendlies_file:
         for league, league_list in found_friendlies.items():
             for date, (team0, team1) in league_list:
-                # TODO: is this the right format, or is date, team_name, team_name better?
-                friendlies_file.write(f"{league}, {date_to_date_number[date]}, {team0}, {team1}\n")
+                team0 = data["leagues_to_teams"][league][ALPHABET.find(team0)]
+                team1 = data["leagues_to_teams"][league][ALPHABET.find(team1)]
+                friendlies_file.write(f"{league}, {date}, {team0}, {team1}\n")
 
 
 def sort_and_format_pair(team0, team1, host_club, team_to_team_letter):
