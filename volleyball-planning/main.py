@@ -369,7 +369,9 @@ def solve_problem(data: dict):
             problem += matches_vs_dates[league][match][date] == 0
 
     for club, date in data["venue_unavailabilities"]:
-        relevant_matches = teams_to_matches[team]
+        if club not in venue_bookings:
+            # Club MV only has juniors & mixed, so skip here.
+            continue
         for league, matches in leagues_to_matches.items():
             for match in range(len(matches)):
                 problem += venue_bookings[club][league][date][match] == 0
